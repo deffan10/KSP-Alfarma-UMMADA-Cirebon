@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ksp-custom-image:latest
+    container_name: ksp-app  # <--- Nama ini penting buat dipanggil Proxy
+    restart: always
+    environment:
+      PUID: 1000
+      PGID: 1000
+      PHP_DISPLAY_ERRORS: "off"
+      # KUNCI LARAVEL AGAR TIDAK 404:
+      WEB_DOCUMENT_ROOT: /var/www/html/public
+      PHP_EXTENSION_GD: 1
+      PHP_EXTENSION_INTL: 1
+      PHP_EXTENSION_ZIP: 1
+    volumes:
+      # Mapping Kodingan (Titik artinya folder saat ini)
+      - ./:/var/www/html
+      # Mapping Config Nginx
+      - ./nginx.conf:/etc/nginx/server-opts.d/custom.conf
+    networks:
+      - ummada-net
+
+networks:
+  ummada-net:
+    external: true
