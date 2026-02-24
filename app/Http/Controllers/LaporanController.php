@@ -76,10 +76,12 @@ class LaporanController extends Controller
         $kas = \DB::table('sisa_kas')->first();
         $tot_pinjam = \DB::table('tot_pinjam')->first();
         $simpanan_wajib = \DB::table('transaksis')->where('jenis_transaksi', 'wajib')->sum('total');
-        // Keuntungan bagi hasil berjalan: total cicilan diterima (pinj. lunas) - total pokok (pinj. lunas), tanpa pakai laba tutup buku
-        $total_cicilan_lunas = (float) \DB::table('pengembalians')->where('status_pinjam', '0')->where('aktif', '1')->sum('jumlah_cicilan');
-        $total_pokok_lunas = (float) \DB::table('pinjamans')->where('status', '0')->where('aktif', '1')->sum('total');
-        $keuntungan_berjalan = $total_cicilan_lunas - $total_pokok_lunas;
+        // Keuntungan berjalan = jumlah cicilan yang dibayar × persentase bunga (per pinjaman)
+        $keuntungan_berjalan = (float) \DB::table('pengembalians')
+            ->join('pinjamans', 'pengembalians.pinjaman_id', '=', 'pinjamans.id')
+            ->where('pengembalians.aktif', '1')
+            ->selectRaw('SUM(pengembalians.jumlah_cicilan * pinjamans.persen / 100) as total')
+            ->value('total') ?: 0;
         $kas_val = $kas ? (float) $kas->total : 0;
         $pinjam_val = $tot_pinjam ? (float) $tot_pinjam->total : 0;
         $total_saldo = $kas_val + $pinjam_val;

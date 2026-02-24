@@ -5,7 +5,7 @@
   <em>Sistem Informasi Manajemen Koperasi Simpan Pinjam</em>
 </p>
 <p align="center">
-  <strong>v3.2.1</strong>
+  <strong>v3.3.0</strong>
 </p>
 
 ---
