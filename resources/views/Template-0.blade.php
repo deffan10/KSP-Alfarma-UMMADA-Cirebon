@@ -89,7 +89,7 @@
               <li class="menu-header">Administrasi</li>
               @php
                 $menu_open = '';
-                if (str_contains(Request::url(),'shu') || str_contains(Request::url(),'ttp_buku') || str_contains(Request::url(),'lapxls') || str_contains(Request::url(),'rekap-kas')) 
+                if (str_contains(Request::url(),'shu') || str_contains(Request::url(),'ttp_buku') || str_contains(Request::url(),'lapxls') || str_contains(Request::url(),'rekap-kas') || str_contains(Request::url(),'penyesuaian-kas')) 
                 {$menu_open = 'dropdown active';}
 		          @endphp
               <li class="nav-item {{ $menu_open }}">
@@ -99,6 +99,7 @@
                   <li class="@if(str_contains(Request::url(),'ttp_buku'))active @endif"><a class="nav-link" href="{{ url('shu/ttp_buku') }}">Tutup Buku</a></li>
                   <li class="@if(str_contains(Request::url(),'lapxls'))active @endif"><a class="nav-link" href="{{ url('laporan/lapxls') }}">Laporan Transaksi</a></li>
                   <li class="@if(str_contains(Request::url(),'rekap-kas'))active @endif"><a class="nav-link" href="{{ url('rekap-kas') }}">Rekap Mutasi Kas</a></li>
+                  <li class="@if(str_contains(Request::url(),'penyesuaian-kas'))active @endif"><a class="nav-link" href="{{ url('penyesuaian-kas') }}">Penyesuaian Kas</a></li>
                 </ul>
               </li>             
             <div class="mt-4 mb-4 p-3 hide-sidebar-mini">

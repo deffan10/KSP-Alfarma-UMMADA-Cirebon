@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class General_ledger extends Model
 {
     use HasFactory;
-    protected $fillable = ['transaksi_id','total','jenis_transaksi','user_id','status_pembukuan']; 
+    protected $fillable = ['transaksi_id','total','jenis_transaksi','keterangan','user_id','status_pembukuan']; 
 
 
 }

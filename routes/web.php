@@ -33,6 +33,8 @@ Route::get('laporan/lappdf',[App\Http\Controllers\LaporanController::class,'lapP
 
 Route::get('laporan/lapxls',[App\Http\Controllers\LaporanController::class,'lapXls']);
 Route::get('rekap-kas', [App\Http\Controllers\RekapKasController::class, 'index'])->name('rekap-kas');
+Route::get('penyesuaian-kas', [App\Http\Controllers\PenyesuaianKasController::class, 'index'])->name('penyesuaian-kas.index');
+Route::post('penyesuaian-kas', [App\Http\Controllers\PenyesuaianKasController::class, 'store'])->name('penyesuaian-kas.store');
 
 // Pinjaman routes
 Route::get('pinjaman/recheck-active', [PinjamanController::class,'recheck_active_loans'])->name('pinjaman.recheck');
