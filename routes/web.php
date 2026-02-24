@@ -32,6 +32,7 @@ Route::post('nasabah/transaksi', [NasabahController::class,'transaksi']);
 Route::get('laporan/lappdf',[App\Http\Controllers\LaporanController::class,'lapPdf']);
 
 Route::get('laporan/lapxls',[App\Http\Controllers\LaporanController::class,'lapXls']);
+Route::get('rekap-kas', [App\Http\Controllers\RekapKasController::class, 'index'])->name('rekap-kas');
 
 // Pinjaman routes
 Route::get('pinjaman/recheck-active', [PinjamanController::class,'recheck_active_loans'])->name('pinjaman.recheck');
