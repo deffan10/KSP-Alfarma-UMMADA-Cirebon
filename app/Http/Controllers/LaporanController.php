@@ -76,6 +76,10 @@ class LaporanController extends Controller
         $kas = \DB::table('sisa_kas')->first();
         $tot_pinjam = \DB::table('tot_pinjam')->first();
         $simpanan_wajib = \DB::table('transaksis')->where('jenis_transaksi', 'wajib')->sum('total');
+        // Keuntungan bagi hasil berjalan: total cicilan diterima (pinj. lunas) - total pokok (pinj. lunas), tanpa pakai laba tutup buku
+        $total_cicilan_lunas = (float) \DB::table('pengembalians')->where('status_pinjam', '0')->where('aktif', '1')->sum('jumlah_cicilan');
+        $total_pokok_lunas = (float) \DB::table('pinjamans')->where('status', '0')->where('aktif', '1')->sum('total');
+        $keuntungan_berjalan = $total_cicilan_lunas - $total_pokok_lunas;
         $kas_val = $kas ? (float) $kas->total : 0;
         $pinjam_val = $tot_pinjam ? (float) $tot_pinjam->total : 0;
         $total_saldo = $kas_val + $pinjam_val;
@@ -90,6 +94,8 @@ class LaporanController extends Controller
         $fpdf->Cell(0, 7, 'Rp ' . number_format($pinjam_val, 0, ',', '.'), 1, 1, 'R');
         $fpdf->Cell(60, 7, 'Jumlah Simpanan Wajib', 1, 0, 'L');
         $fpdf->Cell(0, 7, 'Rp ' . number_format($simpanan_wajib, 0, ',', '.'), 1, 1, 'R');
+        $fpdf->Cell(60, 7, 'Keuntungan Bagi Hasil (berjalan)', 1, 0, 'L');
+        $fpdf->Cell(0, 7, 'Rp ' . number_format($keuntungan_berjalan, 0, ',', '.'), 1, 1, 'R');
         $fpdf->SetFont('Times', 'B', 10);
         $fpdf->Cell(60, 7, 'Total Saldo (Kas + Pinjaman)', 1, 0, 'L');
         $fpdf->Cell(0, 7, 'Rp ' . number_format($total_saldo, 0, ',', '.'), 1, 1, 'R');
