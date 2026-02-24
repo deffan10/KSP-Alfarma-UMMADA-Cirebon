@@ -5,7 +5,7 @@
   <em>Sistem Informasi Manajemen Koperasi Simpan Pinjam</em>
 </p>
 <p align="center">
-  <strong>v3.0.2</strong>
+  <strong>v3.2.1</strong>
 </p>
 
 ---
@@ -63,7 +63,7 @@ Aplikasi web untuk mengelola **nasabah**, **simpanan**, **pinjaman**, **pembagia
 - TTP & cetak buku SHU  
 
 ### 📑 Laporan
-- **PDF** — Laporan transaksi (kop: logo, nama koperasi, alamat, telepon), transaksi per nasabah, pinjaman per nasabah (FPDF)  
+- **PDF** — Laporan transaksi: kop (logo, nama koperasi, alamat, telepon); tabel transaksi + penyesuaian kas; tabel **PERINCIAN DANA** (Kas Tersedia, Dana Bergulir, Jumlah Simpanan Wajib, Total Saldo (Kas + Pinjaman)). Juga PDF per nasabah & per pinjaman.  
 - **Excel** — Laporan transaksi (termasuk **penyesuaian kas**), kolom Jenis (Transaksi / Penyesuaian Kas)  
 - **Rekap Mutasi Kas** — bandingkan kas buku besar vs transaksi vs saldo bank  
 - **Penyesuaian Kas** — jurnal operasional luar KSP (mengurangi Kas Tersedia)  
@@ -180,7 +180,7 @@ Buka **http://localhost:8000**
 - **Rekap Mutasi Kas** (`/rekap-kas`) — Bandingkan kas dari buku besar, transaksi harian, dan saldo bank; input saldo bank untuk hitung mutasi.
 - **Penyesuaian Kas** (`/penyesuaian-kas`) — Jenis transaksi **penyesuaian** (operasional luar KSP). Jurnal pengeluaran kas (Tohir, Beras, biaya bank, dll.) mengurangi Kas Tersedia.
 - **Laporan transaksi Excel** — Sumber data transaksi + penyesuaian kas; kolom **Jenis** (Transaksi / Penyesuaian Kas).
-- **Laporan transaksi PDF** — Kop (logo, nama koperasi, alamat, telepon); data transaksi + penyesuaian; tabel **PERINCIAN DANA** (Kas Tersedia, Dana Bergulir) di bawah.
+- **Laporan transaksi PDF** — Kop (logo, nama koperasi, alamat, telepon); data transaksi + penyesuaian; tabel **PERINCIAN DANA** di bawah: Kas Tersedia, Dana Bergulir (sisa pinjaman), Jumlah Simpanan Wajib, Total Saldo (Kas + Pinjaman).
 - **Dokumen rekap mutasi** — `REKAP-MUTASI.md` & `REKAP-MUTASI-DETAIL.md` (penyebab selisih kas, transaksi gantung, daftar penyesuaian).
 
 #### 🔧 Diperbaiki

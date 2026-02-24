@@ -75,14 +75,24 @@ class LaporanController extends Controller
 
         $kas = \DB::table('sisa_kas')->first();
         $tot_pinjam = \DB::table('tot_pinjam')->first();
+        $simpanan_wajib = \DB::table('transaksis')->where('jenis_transaksi', 'wajib')->sum('total');
+        $kas_val = $kas ? (float) $kas->total : 0;
+        $pinjam_val = $tot_pinjam ? (float) $tot_pinjam->total : 0;
+        $total_saldo = $kas_val + $pinjam_val;
+
         $fpdf->Ln(8);
         $fpdf->SetFont('Times', 'B', 11);
         $fpdf->Cell(0, 6, 'PERINCIAN DANA', 0, 1, 'L');
         $fpdf->SetFont('Times', '', 10);
         $fpdf->Cell(60, 7, 'Kas Tersedia', 1, 0, 'L');
-        $fpdf->Cell(0, 7, 'Rp ' . number_format($kas ? $kas->total : 0, 0, ',', '.'), 1, 1, 'R');
-        $fpdf->Cell(60, 7, 'Dana Dipinjam', 1, 0, 'L');
-        $fpdf->Cell(0, 7, 'Rp ' . number_format($tot_pinjam ? $tot_pinjam->total : 0, 0, ',', '.'), 1, 1, 'R');
+        $fpdf->Cell(0, 7, 'Rp ' . number_format($kas_val, 0, ',', '.'), 1, 1, 'R');
+        $fpdf->Cell(60, 7, 'Dana Bergulir (sisa pinjaman)', 1, 0, 'L');
+        $fpdf->Cell(0, 7, 'Rp ' . number_format($pinjam_val, 0, ',', '.'), 1, 1, 'R');
+        $fpdf->Cell(60, 7, 'Jumlah Simpanan Wajib', 1, 0, 'L');
+        $fpdf->Cell(0, 7, 'Rp ' . number_format($simpanan_wajib, 0, ',', '.'), 1, 1, 'R');
+        $fpdf->SetFont('Times', 'B', 10);
+        $fpdf->Cell(60, 7, 'Total Saldo (Kas + Pinjaman)', 1, 0, 'L');
+        $fpdf->Cell(0, 7, 'Rp ' . number_format($total_saldo, 0, ',', '.'), 1, 1, 'R');
 
         $fpdf->Output();
         exit;
