@@ -2,10 +2,20 @@
 @include('livewire.nasabah.update')
 @include('livewire.nasabah.detail')
 <!-- @include('livewire.nasabah.create') -->
-<div class="row justify-content-end">
-    <div class="col-4">
-        {{ Form::text('search','',['class'=>'form-control me-2', 'wire:model'=>'search', 'placeholder'=>'&#128269;']) }}
-    </div></div>
+<div class="row mb-3">
+    <div class="col-md-3">
+        <label class="form-label">Filter Pinjaman</label>
+        <select class="form-control form-control-sm" wire:model="filterPinjaman">
+            <option value="all">Semua</option>
+            <option value="ada">Ada pinjaman</option>
+            <option value="tidak">Tidak ada pinjaman</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Cari</label>
+        {{ Form::text('search', '', ['class' => 'form-control form-control-sm', 'wire:model' => 'search', 'placeholder' => 'Nama atau no. rekening']) }}
+    </div>
+</div>
 {!! link_to('nasabah/create','+Tambah Data',['class'=>'btn btn-danger btn-sm']) !!} 
 <br><br>
 <table class="table table-striped table-responsive-sm">

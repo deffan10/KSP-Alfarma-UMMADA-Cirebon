@@ -13,23 +13,38 @@ class Nasaba extends Component
     use WithPagination;
     use WithFileUploads;
     protected $paginationTheme = 'bootstrap';
-    public $search='';
+    public $search = '';
+    /** Filter status pinjaman: all, ada, tidak */
+    public $filterPinjaman = 'all';
     public $no_rekening, $nama_lengkap, $alamat, $telp, $no_ktp, $saldo_akhir, $status, $foto;
 
     public function render()
     {
-        //$this->nasaba = Nasabah::all();
-        //return view('livewire.nasabah.index',['nasaba'=>Nasabah::where('nama_lengkap', 'like', '%'.$this->search.'%')->paginate(3)]);
-       $nasaba = Nasabah::orderby('id','desc')->select('*');
-        if (!empty($this->search)){
-            $nasaba->orWhere('nama_lengkap','like',"%".$this->search."%");
-            $nasaba->orWhere('no_rekening','like',"%".$this->search."%");
+        $nasaba = Nasabah::orderBy('id', 'desc');
+
+        if (!empty($this->search)) {
+            $nasaba->where(function ($q) {
+                $q->where('nama_lengkap', 'like', '%' . $this->search . '%')
+                  ->orWhere('no_rekening', 'like', '%' . $this->search . '%');
+            });
         }
+
+        if ($this->filterPinjaman === 'ada') {
+            $nasaba->where('status_pinjaman', '1');
+        } elseif ($this->filterPinjaman === 'tidak') {
+            $nasaba->where('status_pinjaman', '0');
+        }
+
         $nasaba = $nasaba->paginate(10);
-        return view ('livewire.nasabah.index',['nasaba'=>$nasaba,]); 
+        return view('livewire.nasabah.index', ['nasaba' => $nasaba]);
     }
 
     public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterPinjaman()
     {
         $this->resetPage();
     }
