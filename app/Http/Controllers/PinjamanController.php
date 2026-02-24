@@ -25,11 +25,12 @@ class PinjamanController extends Controller
 
     public function index()
     {
-        //
         $data['pinjaman'] = Pinjaman::where('status','1')->paginate(20);
         $data['kas'] = \DB::table('sisa_kas')->first();
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
-        return view('Pinjaman.index',$data);
+        $ids = $data['pinjaman']->pluck('id');
+        $data['cicilan'] = Angsuran::whereIn('pinjaman_id', $ids)->orderBy('id')->get()->groupBy('pinjaman_id')->map(fn ($g) => $g->first()->jumlah_cicilan);
+        return view('Pinjaman.index', $data);
     }
 
     /**
@@ -153,12 +154,13 @@ class PinjamanController extends Controller
 
     public function search(Request $request)
     {
-        //
         $search = $request['keyword'];
         $data['pinjaman'] = Pinjaman::where('nama_lengkap','LIKE',"%{$search}%")->where('status','1')->paginate(5);
         $data['kas'] = \DB::table('sisa_kas')->first();
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
-        return view('Pinjaman.index',$data);
+        $ids = $data['pinjaman']->pluck('id');
+        $data['cicilan'] = $ids->isNotEmpty() ? Angsuran::whereIn('pinjaman_id', $ids)->orderBy('id')->get()->groupBy('pinjaman_id')->map(fn ($g) => $g->first()->jumlah_cicilan) : collect();
+        return view('Pinjaman.index', $data);
     }
 
     /**
@@ -223,30 +225,46 @@ class PinjamanController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+    /**
+     * Tandai pinjaman sebagai lunas (semua angsuran sudah dibayar).
+     * Pinjaman hilang dari list aktif, nasabah bisa ajukan pinjaman baru.
+     */
+    public function mark_lunas($id)
+    {
+        $pinjaman = Pinjaman::findOrFail($id);
+        $remaining = \DB::table('angsurans')->where('pinjaman_id', $id)->where('status', '1')->count();
+        if ($remaining > 0) {
+            Session::flash('pesan', 'Pinjaman belum lunas. Masih ada ' . $remaining . ' angsuran yang belum dibayar.');
+            return redirect('pinjaman');
+        }
+        \DB::table('nasabahs')->where('no_rekening', $pinjaman->no_rekening)->update(['status_pinjaman' => '0']);
+        \DB::table('pinjamans')->where('id', $id)->update(['status' => '0']);
+        \DB::table('angsurans')->where('pinjaman_id', $id)->delete();
+        \DB::table('pengembalians')->where('pinjaman_id', $id)->update(['status_pinjam' => '0']);
+        Session::flash('pesan', 'Pinjaman ditandai lunas. Nasabah dapat mengajukan pinjaman baru.');
+        return redirect('pinjaman');
+    }
+
+    /**
+     * Batalkan/hapus pinjaman (hanya ketika masih ada angsuran belum bayar).
+     */
     public function destroy($id)
     {
-        //
-        $status_angsuran = \DB::table('angsurans')->where('pinjaman_id','=',$id)->orderBy('id','asc')->limit(1)->value('status');
-        if ($status_angsuran=='1'){
-            $pinjaman = Pinjaman::find($id);
+        $pinjaman = Pinjaman::findOrFail($id);
+        $remaining = \DB::table('angsurans')->where('pinjaman_id', $id)->where('status', '1')->count();
+        if ($remaining > 0) {
             $no_rekening = $pinjaman->no_rekening;
             $transaksi_id = $pinjaman->transaksi_id;
-            \DB::table('nasabahs')->where('no_rekening',$no_rekening)->update(['status_pinjaman'=>'0']);           
-            \DB::table('angsurans')->where('pinjaman_id','=', $id)->delete();
-            \DB::table('transaksis')->where('id','=', $transaksi_id)->delete();
-            \DB::table('general_ledgers')->where('transaksi_id','=', $transaksi_id)->delete();
-            \DB::table('pinjamans')->where('id','=',$id)->delete();
-        }else{
-            $pinjaman = Pinjaman::find($id);
-            $no_rekening = $pinjaman->no_rekening;
-            \DB::table('nasabahs')->where('no_rekening',$no_rekening)->update(['status_pinjaman'=>'0']);
-            \DB::table('pinjamans')->where('id','=',$id)->update(['status'=>'0']);
-            \DB::table('angsurans')->where('pinjaman_id', '=', $id)->delete();
-            \DB::table('pengembalians')->where('pinjaman_id','=',$id)->update(['status_pinjam'=>'0']);
+            \DB::table('nasabahs')->where('no_rekening', $no_rekening)->update(['status_pinjaman' => '0']);
+            \DB::table('angsurans')->where('pinjaman_id', $id)->delete();
+            \DB::table('transaksis')->where('id', $transaksi_id)->delete();
+            \DB::table('general_ledgers')->where('transaksi_id', $transaksi_id)->delete();
+            \DB::table('pinjamans')->where('id', $id)->delete();
+            Session::flash('pesan', 'Pinjaman dibatalkan dan dihapus.');
+        } else {
+            return $this->mark_lunas($id);
         }
-
         return redirect('pinjaman');
-        
     }
 
     public function get_name(Request $request)
@@ -256,50 +274,112 @@ class PinjamanController extends Controller
     }
 
     /**
-     * Re-check active loans status
+     * Re-check active loans status: tutup pinjaman yang sudah lunas, perbaiki status nasabah.
+     * Status nasabah hanya di-set "tidak ada pinjaman" jika benar-benar tidak ada pinjaman aktif tersisa.
      */
     public function recheck_active_loans()
     {
-        // Get all nasabah with active loan status
         $nasabahs = \DB::table('nasabahs')
             ->where('status_pinjaman', '1')
             ->get();
 
-        $updated = 0;
+        $loansClosed = 0;
         foreach ($nasabahs as $nasabah) {
-            // Check if they have any active loans with remaining installments
             $active_loans = \DB::table('pinjamans')
                 ->where('no_rekening', $nasabah->no_rekening)
                 ->where('status', '1')
                 ->get();
 
             foreach ($active_loans as $loan) {
-                $remaining_installments = \DB::table('angsurans')
+                $remaining = \DB::table('angsurans')
                     ->where('pinjaman_id', $loan->id)
                     ->where('status', '1')
                     ->count();
 
-                if ($remaining_installments === 0) {
-                    // If no active installments remain, update loan and nasabah status
-                    \DB::table('pinjamans')
-                        ->where('id', $loan->id)
-                        ->update(['status' => '0']);
-                    
-                    \DB::table('nasabahs')
-                        ->where('id', $nasabah->id)
-                        ->update(['status_pinjaman' => '0']);
-                    
-                    $updated++;
+                if ($remaining === 0) {
+                    \DB::table('pinjamans')->where('id', $loan->id)->update(['status' => '0']);
+                    $loansClosed++;
                 }
+            }
+
+            // Set nasabah status_pinjaman = 0 hanya jika tidak ada lagi pinjaman aktif
+            $stillHasActiveLoan = \DB::table('pinjamans')
+                ->where('no_rekening', $nasabah->no_rekening)
+                ->where('status', '1')
+                ->exists();
+
+            if (!$stillHasActiveLoan) {
+                \DB::table('nasabahs')->where('id', $nasabah->id)->update(['status_pinjaman' => '0']);
             }
         }
 
-        if ($updated > 0) {
-            Session::flash('pesan', "Berhasil update $updated nasabah yang sudah lunas pinjaman.");
+        if ($loansClosed > 0) {
+            Session::flash('pesan', "Re-check selesai. {$loansClosed} pinjaman lunas telah ditutup.");
         } else {
-            Session::flash('pesan', "Tidak ditemukan data pinjaman yang perlu diupdate.");
+            Session::flash('pesan', "Tidak ada pinjaman yang perlu ditutup.");
         }
 
         return redirect('pinjaman');
+    }
+
+    /**
+     * Form relaksasi: ubah jumlah angsuran (mis. 5 bulan jadi 7), jumlah cicilan otomatis dihitung ulang.
+     */
+    public function relaksasi($id)
+    {
+        $pinjaman = Pinjaman::where('id', $id)->where('status', '1')->firstOrFail();
+        $paid_count = \DB::table('angsurans')->where('pinjaman_id', $id)->where('status', '0')->count();
+        $unpaid_count = \DB::table('angsurans')->where('pinjaman_id', $id)->where('status', '1')->count();
+        return view('Pinjaman.relaksasi', [
+            'pinjaman' => $pinjaman,
+            'paid_count' => $paid_count,
+            'unpaid_count' => $unpaid_count,
+        ]);
+    }
+
+    /**
+     * Proses relaksasi: update jumlah angsuran, hapus sisa angsuran belum bayar, buat ulang dengan cicilan baru.
+     */
+    public function relaksasi_update(Request $request)
+    {
+        $request->validate([
+            'pinjaman_id' => 'required|exists:pinjamans,id',
+            'new_angsuran' => 'required|integer|min:1',
+        ]);
+
+        $pinjaman_id = (int) $request->pinjaman_id;
+        $new_angsuran = (int) $request->new_angsuran;
+        $pinjaman = Pinjaman::where('id', $pinjaman_id)->where('status', '1')->firstOrFail();
+
+        $total = (float) $pinjaman->total;
+        $persen = (float) $pinjaman->persen;
+        $skema = $pinjaman->skema ?? 'flat';
+        $paid_count = \DB::table('angsurans')->where('pinjaman_id', $pinjaman_id)->where('status', '0')->count();
+
+        if ($new_angsuran < $paid_count) {
+            Session::flash('pesan', 'Jumlah angsuran baru tidak boleh lebih kecil dari angsuran yang sudah dibayar (' . $paid_count . ').');
+            return redirect()->back();
+        }
+
+        $remaining_to_pay = $new_angsuran - $paid_count;
+        if ($skema === 'flat') {
+            $new_jumlah_cicilan = ((($persen / 100) * $total) + $total) / $new_angsuran;
+        } else {
+            $new_jumlah_cicilan = ((($persen / 100) * $total) + $total) / $new_angsuran;
+        }
+
+        \DB::table('pinjamans')->where('id', $pinjaman_id)->update(['angsuran' => $new_angsuran]);
+        \DB::table('angsurans')->where('pinjaman_id', $pinjaman_id)->where('status', '1')->delete();
+
+        for ($i = 0; $i < $remaining_to_pay; $i++) {
+            Angsuran::create([
+                'pinjaman_id' => $pinjaman_id,
+                'jumlah_cicilan' => round($new_jumlah_cicilan),
+                'status' => '1',
+            ]);
+        }
+
+        Session::flash('pesan', "Relaksasi berhasil. Jumlah angsuran diubah menjadi {$new_angsuran} dengan cicilan Rp " . number_format(round($new_jumlah_cicilan), 0, ',', '.') . " per bulan.");
+        return redirect("pinjaman/{$pinjaman_id}");
     }
 }

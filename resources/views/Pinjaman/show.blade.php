@@ -17,6 +17,7 @@
         {!! Form::hidden('pinjaman_id',$angsuran[0]->pinjaman_id) !!}
         {!! Form::button('<i class="fas fa-clipboard"></i> Laporan',['type'=>'submit','class'=>'btn btn-primary btn-sm','formtarget'=>'_blank']) !!}
         {!! Form::close() !!}
+        <a href="{{ route('pinjaman.relaksasi', $angsuran[0]->pinjaman_id) }}" class="btn btn-info btn-sm"><i class="fas fa-calendar-alt"></i> Edit Jumlah Angsuran (Relaksasi)</a>
         </td></tr>
     </table>
 </div>

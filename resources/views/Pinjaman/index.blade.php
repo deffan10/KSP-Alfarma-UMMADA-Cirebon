@@ -30,22 +30,25 @@
 {!! link_to('pinjaman/create','+Tambah Data',['class'=>'btn btn-danger btn-sm']) !!}
 <br><br>
 <table class="table table-striped" >
-    <tr><th colspan="7" class="text-center"><b>DATA PINJAMAN</b></th></tr>
-    <tr><th>Tanggal Peminjaman</th><th>Nama</th><th>Jumlah Pinjaman</th><th>Jumlah Angsuran</th><th>Keterangan</th><th colspan="2"></th></tr>
+    <tr><th colspan="8" class="text-center"><b>DATA PINJAMAN</b></th></tr>
+    <tr><th>Tanggal Peminjaman</th><th>Nama</th><th>Jumlah Pinjaman</th><th>Jumlah Angsuran</th><th>Cicilan/Bulan</th><th>Keterangan</th><th colspan="2"></th></tr>
     @isset($pinjaman)
     @foreach($pinjaman as $p)
-    <tr><td>{{ tgl_id($p->created_at) }}</td><td>{{ $p->nama_lengkap }}</td><td>{{ number_format($p->total) }}</td><td>{{ $p->angsuran }}</td><td>{{ $p->ket }}</td>
-    <td width="120" class="">
-        {!! Form::open(array('url'=>'pinjaman/'.$p->id,'method'=>'delete')) !!}
-        {!! Form::button('<i class="far fa-trash-alt"></i> Delete',['type'=>'submit','class'=>'btn btn-danger btn-sm',"onclick"=>"return confirm('Anda yakin?')"]) !!}
-        {!! Form::close() !!}
-    </td><td>
+    <tr><td>{{ tgl_id($p->created_at) }}</td><td>{{ $p->nama_lengkap }}</td><td>{{ number_format($p->total) }}</td><td>{{ $p->angsuran }}</td><td>Rp {{ isset($cicilan[$p->id]) ? number_format($cicilan[$p->id], 0, ',', '.') : '-' }}</td><td>{{ $p->ket }}</td>
+    <td width="240" class="">
         @php
-        $angsuran = \App\Models\Angsuran::where(['pinjaman_id' => $p->id,'status'=>'1'])->first();
+        $hasUnpaid = \App\Models\Angsuran::where(['pinjaman_id' => $p->id,'status'=>'1'])->exists();
         @endphp
-        @if (isset($angsuran))
+        @if ($hasUnpaid)
+        {!! Form::open(array('url'=>'pinjaman/'.$p->id,'method'=>'delete')) !!}
+        {!! Form::button('<i class="fas fa-times"></i> Batalkan',['type'=>'submit','class'=>'btn btn-danger btn-sm',"onclick"=>"return confirm('Batalkan pinjaman? Data pinjaman akan dihapus.')"]) !!}
+        {!! Form::close() !!}
         {!! link_to('pinjaman/'.$p->id,'Angsuran',['class'=>'btn btn-warning btn-sm']) !!}
+        <a href="{{ route('pinjaman.relaksasi', $p->id) }}" class="btn btn-info btn-sm" title="Ubah jumlah angsuran (relaksasi)"><i class="fas fa-calendar-alt"></i> Relaksasi</a>
         @else
+        {!! Form::open(array('url'=>route('pinjaman.lunas', $p->id),'method'=>'post')) !!}
+        {!! Form::button('<i class="fas fa-check"></i> Lunas',['type'=>'submit','class'=>'btn btn-success btn-sm',"onclick"=>"return confirm('Tandai pinjaman sebagai lunas? Nasabah dapat mengajukan pinjaman baru.')"]) !!}
+        {!! Form::close() !!}
         {!! link_to('pinjaman/'.$p->id,'Angsuran',['class'=>'btn btn-warning btn-sm disabled']) !!}
         @endif
     @endforeach

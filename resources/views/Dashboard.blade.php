@@ -68,10 +68,16 @@
               </div>
             </div>
           </div>
-          <!-- Chart section -->
+          <!-- Chart: Total Simpanan (Wajib + Sukarela) per Bulan -->
           <div class="row">
             <div class="col-lg-12 col-md-12 col-12 col-sm-12">
               <div class="card">
+                <div class="card-header">
+                  <h4>Total Simpanan per Bulan (Wajib + Sukarela)</h4>
+                  <div class="card-header-action">
+                    <small>Sumber: transaksi simpanan wajib &amp; sukarela, dikelompokkan per bulan</small>
+                  </div>
+                </div>
                 <div class="card-body">
                   <canvas id="myChart" height="150"></canvas>
                 </div>

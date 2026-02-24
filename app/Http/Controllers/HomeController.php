@@ -30,9 +30,15 @@ class HomeController extends Controller
      */
     public function index()
     {
-        $chart = \DB::table('chart')->get();
-        $data['credit'] = $chart->pluck('total');
-        $data['month'] = $chart->pluck('Month');
+        // Chart: total simpanan (wajib + sukarela) per bulan — 12 bulan berurutan, bulan tanpa data = 0
+        $chartRows = \DB::table('chart')->get()->keyBy('Month');
+        $monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        $data['credit'] = [];
+        $data['month'] = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $data['month'][] = $monthLabels[$m - 1];
+            $data['credit'][] = isset($chartRows[$m]) ? (float) $chartRows[$m]->total : 0;
+        }
         $data['juser'] = User::all()->count();
         $data['jnasabah'] = Nasabah::all()->count();
         $data['kas'] = \DB::table('sisa_kas')->first();

@@ -35,6 +35,9 @@ Route::get('laporan/lapxls',[App\Http\Controllers\LaporanController::class,'lapX
 
 // Pinjaman routes
 Route::get('pinjaman/recheck-active', [PinjamanController::class,'recheck_active_loans'])->name('pinjaman.recheck');
+Route::get('pinjaman/relaksasi/{id}', [PinjamanController::class, 'relaksasi'])->name('pinjaman.relaksasi');
+Route::post('pinjaman/relaksasi', [PinjamanController::class, 'relaksasi_update'])->name('pinjaman.relaksasi.update');
+Route::post('pinjaman/{id}/lunas', [PinjamanController::class, 'mark_lunas'])->name('pinjaman.lunas');
 Route::post('pinjaman/search', [PinjamanController::class,'search']);
 Route::resource('pinjaman', PinjamanController::class);
 

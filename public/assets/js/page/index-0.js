@@ -9,39 +9,53 @@ if (statisticsCanvas && statisticsCanvas.getContext) {
   var myChart = new Chart(statistics_chart, {
   type: 'line',
   data: {
-    labels: month,
+    labels: typeof month !== 'undefined' ? month : [],
     datasets: [{
-      label: 'Tabungan',
-      data: total,
-      borderWidth: 5,
+      label: 'Total Simpanan (Rp)',
+      data: typeof total !== 'undefined' ? total : [],
+      borderWidth: 2,
       borderColor: '#6777ef',
-      backgroundColor: 'transparent',
-      pointBackgroundColor: '#fff',
-      pointBorderColor: '#6777ef',
-      pointRadius: 4
+      backgroundColor: 'rgba(103, 119, 239, 0.1)',
+      fill: true,
+      pointBackgroundColor: '#6777ef',
+      pointBorderColor: '#fff',
+      pointRadius: 4,
+      pointHoverRadius: 5
     }]
   },
   options: {
     legend: {
-      display: false
+      display: true,
+      position: 'top'
     },
     scales: {
       yAxes: [{
+        scaleLabel: {
+          display: true,
+          labelString: 'Total Simpanan (Rp)'
+        },
         gridLines: {
-          display: false,
-          drawBorder: false,
+          display: true,
+          drawBorder: false
         },
         ticks: {
-          stepSize: 50000
+          stepSize: 500000,
+          callback: function(value) {
+            return value >= 1000000 ? (value / 1000000) + 'jt' : value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+          }
         }
       }],
       xAxes: [{
+        scaleLabel: {
+          display: true,
+          labelString: 'Bulan'
+        },
         gridLines: {
           color: '#fbfbfb',
           lineWidth: 2
         }
       }]
-    },
+    }
   }
   }); 
 }
