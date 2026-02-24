@@ -24,35 +24,57 @@ class LaporanController extends Controller
 
     public function lapPdf()
     {
-        $fpdf = New pdf('P','mm','A4');
+        $fpdf = new pdf('P', 'mm', 'A4');
         $fpdf->AliasNbPages();
         $fpdf->AddPage();
-        $fpdf->SetFont('Times','B',12);
-        $fpdf->SetLeftMargin(20);
-        $fpdf->Cell(8,8,'No',1,0,'C');
-        $fpdf->Cell(30,8,'Tanggal',1,0,'C');
-        $fpdf->Cell(30,8,'No. Rekening',1,0,'C');
-        $fpdf->Cell(40,8,'Nama',1,0,'C');
-        $fpdf->Cell(30,8,'Jumlah',1,0,'C');
-        $fpdf->Cell(30,8,'Operator',1,1,'C');
-        $transaksi = \DB::table('transaksis')->join('users','users.id','=','transaksis.user_id')
-        ->join('nasabahs','nasabahs.id','=','transaksis.nasabah_id')->select('nasabahs.no_rekening',
-        'nasabahs.nama_lengkap','transaksis.created_at','transaksis.total','users.name')->get();
-        $no=1;
-        foreach ($transaksi as $t)
-        {
-            $fpdf->SetFont('Times','',12);
-            $fpdf->SetLeftMargin(20);
-            $fpdf->Cell(8,8,$no,1,0,'C');
-            $fpdf->Cell(30,8,tgl_id($t->created_at),1,0,'C');
-            $fpdf->Cell(30,8,$t->no_rekening,1,0,'C');
-            $fpdf->Cell(40,8,$t->nama_lengkap,1,0,'C');
-            $fpdf->Cell(30,8,$t->total,1,0,'C');
-            $fpdf->Cell(30,8,$t->name,1,1,'C');
+        $fpdf->SetFont('Times', 'B', 10);
+        $fpdf->SetLeftMargin(15);
+        $fpdf->SetRightMargin(15);
+
+        $transaksi = \DB::table('transaksis')
+            ->join('users', 'users.id', '=', 'transaksis.user_id')
+            ->join('nasabahs', 'nasabahs.id', '=', 'transaksis.nasabah_id')
+            ->select('transaksis.created_at', 'transaksis.total', 'nasabahs.no_rekening', 'nasabahs.nama_lengkap', 'users.name')
+            ->orderBy('transaksis.created_at')
+            ->get();
+
+        $penyesuaian = \DB::table('general_ledgers')
+            ->join('users', 'users.id', '=', 'general_ledgers.user_id')
+            ->where('general_ledgers.jenis_transaksi', 'penyesuaian')
+            ->where('general_ledgers.status_pembukuan', '1')
+            ->select('general_ledgers.created_at', 'general_ledgers.total', 'general_ledgers.keterangan', 'users.name')
+            ->orderBy('general_ledgers.created_at')
+            ->get();
+
+        $merged = $transaksi->map(function ($t) {
+            return (object)['created_at' => $t->created_at, 'no_rekening' => $t->no_rekening, 'uraian' => $t->nama_lengkap, 'total' => $t->total, 'name' => $t->name, 'jenis' => 'Transaksi'];
+        })->concat($penyesuaian->map(function ($p) {
+            return (object)['created_at' => $p->created_at, 'no_rekening' => '-', 'uraian' => $p->keterangan ?? 'Penyesuaian kas', 'total' => $p->total, 'name' => $p->name, 'jenis' => 'Penyesuaian Kas'];
+        }))->sortBy('created_at')->values();
+
+        $fpdf->Cell(8, 7, 'No', 1, 0, 'C');
+        $fpdf->Cell(22, 7, 'Tanggal', 1, 0, 'C');
+        $fpdf->Cell(25, 7, 'No. Rekening', 1, 0, 'C');
+        $fpdf->Cell(50, 7, 'Nama / Keterangan', 1, 0, 'C');
+        $fpdf->Cell(28, 7, 'Jumlah', 1, 0, 'C');
+        $fpdf->Cell(25, 7, 'Jenis', 1, 0, 'C');
+        $fpdf->Cell(22, 7, 'Operator', 1, 1, 'C');
+
+        $no = 1;
+        foreach ($merged as $r) {
+            $fpdf->SetFont('Times', '', 9);
+            $fpdf->Cell(8, 6, $no, 1, 0, 'C');
+            $fpdf->Cell(22, 6, tgl_id($r->created_at), 1, 0, 'C');
+            $fpdf->Cell(25, 6, $r->no_rekening, 1, 0, 'L');
+            $fpdf->Cell(50, 6, \Illuminate\Support\Str::limit($r->uraian, 28), 1, 0, 'L');
+            $fpdf->Cell(28, 6, number_format($r->total), 1, 0, 'R');
+            $fpdf->Cell(25, 6, $r->jenis, 1, 0, 'C');
+            $fpdf->Cell(22, 6, $r->name, 1, 1, 'L');
             $no++;
         }
+
         $fpdf->Output();
-        die;
+        exit;
     }
 
     public function transNas(Request $request)
@@ -151,27 +173,44 @@ class LaporanController extends Controller
 
 class pdf extends \FPDF
 {
-
-    function Header()
+    public function Header()
     {
-        $logo = Profile::where('status','active')->first();
-        // Logo
-        if (!empty($logo->file_logo) && \File::exists(public_path().'/storage/foto/'.$logo->file_logo)){
-            $this->Image(asset('storage/foto').'/'.$logo->file_logo,10,6,30);
-        }else{
-            $this->Image(asset('foto').'/'.'member.png',10,6,30);
+        $profile = Profile::where('status', 'active')->first();
+        $nama = $profile ? $profile->nama_koperasi : 'KOPERASI SIMPAN PINJAM';
+        $alamat = $profile && $profile->alamat ? $profile->alamat : '';
+        if ($profile && $profile->kota) {
+            $alamat .= ($alamat ? ', ' : '') . $profile->kota;
         }
-        // Arial bold 15
-        $this->SetFont('Times','B',16);
-        // Move to the right
-        $this->Cell(80);
-        // Title
-        $this->Cell(40,10,'KOPERASI SIMPAN PINJAM',0,1,'C');
-        $this->Cell(200,5,$logo->nama_koperasi,0,0,'C');
-        // Line break
-        $this->Ln(25);
-        $this->Cell(190,0,'',1,0,'C');
-        $this->Ln(10);
+        if ($profile && $profile->provinsi) {
+            $alamat .= ($alamat ? ', ' : '') . $profile->provinsi;
+        }
+        $telp = $profile && $profile->telp ? 'Telp: ' . $profile->telp : '';
+
+        $logoPath = null;
+        if ($profile && !empty($profile->file_logo) && \File::exists(public_path('storage/foto/' . $profile->file_logo))) {
+            $logoPath = public_path('storage/foto/' . $profile->file_logo);
+        } elseif (\File::exists(public_path('foto/member.png'))) {
+            $logoPath = public_path('foto/member.png');
+        }
+        if ($logoPath) {
+            $this->Image($logoPath, 10, 6, 24);
+        }
+
+        $this->SetFont('Times', 'B', 14);
+        $this->Cell(0, 6, 'KOPERASI SIMPAN PINJAM', 0, 1, 'C');
+        $this->SetFont('Times', 'B', 12);
+        $this->Cell(0, 6, $nama, 0, 1, 'C');
+        if ($alamat !== '') {
+            $this->SetFont('Times', '', 10);
+            $this->Cell(0, 5, $alamat, 0, 1, 'C');
+        }
+        if ($telp !== '') {
+            $this->Cell(0, 5, $telp, 0, 1, 'C');
+        }
+        $this->Ln(4);
+        $this->SetDrawColor(0, 0, 0);
+        $this->Cell(0, 0, '', 'B', 1);
+        $this->Ln(6);
     }
 
     // Page footer

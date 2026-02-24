@@ -97,7 +97,8 @@
                 <ul class="dropdown-menu">
                   <li class="@if(str_contains(Request::url(),'shu'))active @endif"><a class="nav-link" href="{{ url('shu') }}">Sisa Hasil Usaha</a></li>
                   <li class="@if(str_contains(Request::url(),'ttp_buku'))active @endif"><a class="nav-link" href="{{ url('shu/ttp_buku') }}">Tutup Buku</a></li>
-                  <li class="@if(str_contains(Request::url(),'lapxls'))active @endif"><a class="nav-link" href="{{ url('laporan/lapxls') }}">Laporan Transaksi</a></li>
+                  <li class="@if(str_contains(Request::url(),'lapxls'))active @endif"><a class="nav-link" href="{{ url('laporan/lapxls') }}">Laporan Transaksi (Excel)</a></li>
+                  <li><a class="nav-link" href="{{ url('laporan/lappdf') }}" target="_blank">Laporan Transaksi (PDF)</a></li>
                   <li class="@if(str_contains(Request::url(),'rekap-kas'))active @endif"><a class="nav-link" href="{{ url('rekap-kas') }}">Rekap Mutasi Kas</a></li>
                   <li class="@if(str_contains(Request::url(),'penyesuaian-kas'))active @endif"><a class="nav-link" href="{{ url('penyesuaian-kas') }}">Penyesuaian Kas</a></li>
                 </ul>
