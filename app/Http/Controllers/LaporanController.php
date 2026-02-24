@@ -173,6 +173,40 @@ class LaporanController extends Controller
 
 class pdf extends \FPDF
 {
+    /**
+     * FPDF tidak mendukung PNG interlacing. Konversi ke non-interlaced via GD.
+     */
+    protected function imagePathForFpdf($path)
+    {
+        if (!file_exists($path) || !function_exists('imagecreatefrompng')) {
+            return $path;
+        }
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        if ($ext === 'png') {
+            $im = @imagecreatefrompng($path);
+            if ($im === false) {
+                return $path;
+            }
+            imagealphablending($im, false);
+            imagesavealpha($im, true);
+            $tmp = tempnam(sys_get_temp_dir(), 'fpdf_logo_') . '.png';
+            imagepng($im, $tmp);
+            imagedestroy($im);
+            return file_exists($tmp) ? $tmp : $path;
+        }
+        if ($ext === 'jpg' || $ext === 'jpeg') {
+            $im = @imagecreatefromjpeg($path);
+            if ($im === false) {
+                return $path;
+            }
+            $tmp = tempnam(sys_get_temp_dir(), 'fpdf_logo_') . '.jpg';
+            imagejpeg($im, $tmp);
+            imagedestroy($im);
+            return file_exists($tmp) ? $tmp : $path;
+        }
+        return $path;
+    }
+
     public function Header()
     {
         $profile = Profile::where('status', 'active')->first();
@@ -193,7 +227,15 @@ class pdf extends \FPDF
             $logoPath = public_path('foto/member.png');
         }
         if ($logoPath) {
-            $this->Image($logoPath, 10, 6, 24);
+            $imagePathForFpdf = $this->imagePathForFpdf($logoPath);
+            $ext = strtolower(pathinfo($logoPath, PATHINFO_EXTENSION));
+            $isConverted = ($imagePathForFpdf !== $logoPath);
+            if ($imagePathForFpdf && file_exists($imagePathForFpdf) && ($isConverted || $ext !== 'png')) {
+                $this->Image($imagePathForFpdf, 10, 6, 24);
+                if ($isConverted) {
+                    @unlink($imagePathForFpdf);
+                }
+            }
         }
 
         $this->SetFont('Times', 'B', 14);

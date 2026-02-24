@@ -4,6 +4,9 @@
 <p align="center">
   <em>Sistem Informasi Manajemen Koperasi Simpan Pinjam</em>
 </p>
+<p align="center">
+  <strong>v3.0.2</strong>
+</p>
 
 ---
 
@@ -60,8 +63,10 @@ Aplikasi web untuk mengelola **nasabah**, **simpanan**, **pinjaman**, **pembagia
 - TTP & cetak buku SHU  
 
 ### 📑 Laporan
-- **PDF** — transaksi umum, transaksi per nasabah, pinjaman per nasabah (FPDF)  
-- **Excel** — export data (Maatwebsite Excel)  
+- **PDF** — Laporan transaksi (kop: logo, nama koperasi, alamat, telepon), transaksi per nasabah, pinjaman per nasabah (FPDF)  
+- **Excel** — Laporan transaksi (termasuk **penyesuaian kas**), kolom Jenis (Transaksi / Penyesuaian Kas)  
+- **Rekap Mutasi Kas** — bandingkan kas buku besar vs transaksi vs saldo bank  
+- **Penyesuaian Kas** — jurnal operasional luar KSP (mengurangi Kas Tersedia)  
 
 ### 📈 Dashboard
 - Statistik: total nasabah, kas tersedia, dana dipinjam, jumlah operator  
@@ -82,7 +87,7 @@ Nasabah (index, create, update, detail) · Transaksi · Operator · Profil
 | `pinjamans` | Data pinjaman (total, angsuran, persen, skema, status) |
 | `angsurans` | Cicilan per periode |
 | `pengembalians` | Riwayat pembayaran angsuran |
-| `general_ledgers` | Pembukuan (operasional, SHU) |
+| `general_ledgers` | Pembukuan (operasional, SHU, penyesuaian kas) |
 | `profiles` | Profil koperasi (active) |
 
 **View:** `sisa_kas` · `tot_pinjam` · `laba` · `kas_masuk` · `kas_keluar` · `chart`
@@ -95,7 +100,7 @@ Nasabah (index, create, update, detail) · Transaksi · Operator · Profil
 - Composer  
 - Node.js & NPM  
 - MySQL  
-- Ekstensi PHP: BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML  
+- Ekstensi PHP: BCMath, Ctype, Fileinfo, GD (untuk logo PNG di PDF), JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML  
 
 ---
 
@@ -142,7 +147,9 @@ Buka **http://localhost:8000**
 | GET/POST | `/pinjaman/relaksasi/{id}` | Relaksasi angsuran |
 | POST | `/pinjaman/{id}/lunas` | Tandai lunas |
 | GET/POST | `/shu` | SHU |
-| GET | `/laporan/lappdf`, `/laporan/lapxls` | Laporan PDF/Excel |
+| GET | `/laporan/lappdf`, `/laporan/lapxls` | Laporan transaksi PDF (berkop) / Excel |
+| GET | `/rekap-kas` | Rekap mutasi kas |
+| GET/POST | `/penyesuaian-kas` | Jurnal penyesuaian kas |
 | GET | `/operator` | Operator |
 | GET | `/profile` | Profil |
 
@@ -160,3 +167,7 @@ Buka **http://localhost:8000**
 ## 📜 Lisensi
 
 Proyek berbasis Laravel (MIT). Sesuaikan dengan kebijakan KSP Alfarma UMMADA Cirebon.
+
+---
+
+**Versi:** 3.0.2
