@@ -189,6 +189,7 @@ class pdf extends \FPDF
             }
             imagealphablending($im, false);
             imagesavealpha($im, true);
+            imageinterlace($im, 0);
             $tmp = tempnam(sys_get_temp_dir(), 'fpdf_logo_') . '.png';
             imagepng($im, $tmp);
             imagedestroy($im);
