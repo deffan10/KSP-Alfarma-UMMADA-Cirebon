@@ -124,7 +124,7 @@
           @endif
         </div>
         <div class="footer-right">
-          3.0.2
+          3.2.0
         </div>
       </footer>
     </div>

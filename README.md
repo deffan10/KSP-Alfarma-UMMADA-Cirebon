@@ -90,7 +90,9 @@ Nasabah (index, create, update, detail) · Transaksi · Operator · Profil
 | `general_ledgers` | Pembukuan (operasional, SHU, penyesuaian kas) |
 | `profiles` | Profil koperasi (active) |
 
-**View:** `sisa_kas` · `tot_pinjam` · `laba` · `kas_masuk` · `kas_keluar` · `chart`
+**View:** `sisa_kas` · `tot_pinjam` · `laba` · `kas_masuk` · `kas_keluar` · `chart`  
+
+**Catatan:** `tot_pinjam` (Dana Bergulir) = **total sisa pinjaman yang belum dibayar** (jumlah angsuran status belum lunas), bukan jumlah awal pinjaman. Hanya pinjaman aktif (status=1).
 
 ---
 
@@ -161,6 +163,36 @@ Buka **http://localhost:8000**
 
 - **tgl_id($d)** — format tanggal ke `dd-mm-yyyy`  
 - **tglAdd($d, $n)** — tambah `$n` bulan pada tanggal `$d`  
+
+---
+
+## 📋 Changelog
+
+### v3.0.2
+
+#### ✨ Ditambah
+- **Filter nasabah** — Filter status pinjaman (Semua / Ada pinjaman / Tidak ada) di list nasabah.
+- **Tabel nasabah** — Kolom Saldo & Status Pinjaman; tombol aksi tetap (Transaksi, Edit, Delete, Detail).
+- **Cicilan/bulan di list pinjaman** — Kolom nominal cicilan per bulan di tabel DATA PINJAMAN.
+- **Relaksasi angsuran** — Ubah jumlah angsuran (mis. 5 → 7 bulan); cicilan per bulan dihitung ulang otomatis. Tombol di halaman pinjaman & detail angsuran.
+- **Tombol Lunas** — Ganti tombol Delete jadi **Lunas** (jika semua angsuran sudah dibayar) dan **Batalkan** (jika masih ada angsuran). Lunas = pinjaman hilang dari list, nasabah bisa pinjam lagi.
+- **Re-check pinjaman** — Hanya set status nasabah “tidak ada pinjaman” jika benar-benar tidak ada pinjaman aktif tersisa (perbaikan untuk nasabah dengan banyak pinjaman).
+- **Rekap Mutasi Kas** (`/rekap-kas`) — Bandingkan kas dari buku besar, transaksi harian, dan saldo bank; input saldo bank untuk hitung mutasi.
+- **Penyesuaian Kas** (`/penyesuaian-kas`) — Jenis transaksi **penyesuaian** (operasional luar KSP). Jurnal pengeluaran kas (Tohir, Beras, biaya bank, dll.) mengurangi Kas Tersedia.
+- **Laporan transaksi Excel** — Sumber data transaksi + penyesuaian kas; kolom **Jenis** (Transaksi / Penyesuaian Kas).
+- **Laporan transaksi PDF** — Kop (logo, nama koperasi, alamat, telepon); data transaksi + penyesuaian; tabel **PERINCIAN DANA** (Kas Tersedia, Dana Bergulir) di bawah.
+- **Dokumen rekap mutasi** — `REKAP-MUTASI.md` & `REKAP-MUTASI-DETAIL.md` (penyebab selisih kas, transaksi gantung, daftar penyesuaian).
+
+#### 🔧 Diperbaiki
+- **Chart dashboard** — Sumber data jelas (simpanan wajib + sukarela per bulan); 12 bulan berurutan; label sumbu & judul; view `chart` tanpa hardcode nama database.
+- **Livewire nasabah** — Perbaikan syntax Blade (`@endisset` ganda) yang menyebabkan error "unexpected token endif".
+- **FPDF logo PNG** — Error "Interlacing not supported" diatasi dengan konversi logo ke non-interlaced via GD (`imageinterlace($im, 0)`).
+- **Dana Bergulir** — View `tot_pinjam` diubah: sekarang **sisa pinjaman yang belum dibayar** (jumlah angsuran belum lunas), bukan total nominal awal pinjaman. Pinjaman lunas tidak ikut dihitung.
+
+#### 📝 Diubah
+- **Tabel nasabah** — Kolom dari (No.Rek, Nama, Telepon, Alamat) menjadi (No.Rek, Nama, Saldo, Status Pinjaman, Aksi).
+- **Tombol pinjaman** — Delete diganti Lunas/Batalkan; tombol Relaksasi ditambah.
+- **Versi aplikasi** — Footer & README: **3.0.2**.
 
 ---
 

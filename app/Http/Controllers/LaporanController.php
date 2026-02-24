@@ -73,6 +73,17 @@ class LaporanController extends Controller
             $no++;
         }
 
+        $kas = \DB::table('sisa_kas')->first();
+        $tot_pinjam = \DB::table('tot_pinjam')->first();
+        $fpdf->Ln(8);
+        $fpdf->SetFont('Times', 'B', 11);
+        $fpdf->Cell(0, 6, 'PERINCIAN DANA', 0, 1, 'L');
+        $fpdf->SetFont('Times', '', 10);
+        $fpdf->Cell(60, 7, 'Kas Tersedia (dana tersedia)', 1, 0, 'L');
+        $fpdf->Cell(0, 7, 'Rp ' . number_format($kas ? $kas->total : 0, 0, ',', '.'), 1, 1, 'R');
+        $fpdf->Cell(60, 7, 'Dana Bergulir (sisa pinjaman belum dibayar)', 1, 0, 'L');
+        $fpdf->Cell(0, 7, 'Rp ' . number_format($tot_pinjam ? $tot_pinjam->total : 0, 0, ',', '.'), 1, 1, 'R');
+
         $fpdf->Output();
         exit;
     }
