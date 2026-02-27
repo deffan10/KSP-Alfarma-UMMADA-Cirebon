@@ -22,9 +22,9 @@ class TransExport implements FromCollection, WithHeadings
 
         $penyesuaian = DB::table('general_ledgers')
             ->join('users', 'users.id', '=', 'general_ledgers.user_id')
-            ->where('general_ledgers.jenis_transaksi', 'penyesuaian')
+            ->whereIn('general_ledgers.jenis_transaksi', ['penyesuaian', 'penyesuaian_masuk'])
             ->where('general_ledgers.status_pembukuan', '1')
-            ->select('general_ledgers.created_at', 'general_ledgers.total', 'general_ledgers.keterangan', 'users.name')
+            ->select('general_ledgers.created_at', 'general_ledgers.total', 'general_ledgers.keterangan', 'general_ledgers.jenis_transaksi', 'users.name')
             ->orderBy('general_ledgers.created_at')
             ->get();
 
@@ -38,10 +38,11 @@ class TransExport implements FromCollection, WithHeadings
                 'jenis' => 'Transaksi',
             ];
         })->concat($penyesuaian->map(function ($p) {
+            $subjenis = $p->jenis_transaksi === 'penyesuaian_masuk' ? ' (Penambahan)' : ' (Pengurangan)';
             return [
                 'created_at' => $p->created_at,
                 'no_rekening' => '-',
-                'uraian' => $p->keterangan ?? 'Penyesuaian kas',
+                'uraian' => ($p->keterangan ?? 'Penyesuaian kas') . $subjenis,
                 'total' => $p->total,
                 'operator' => $p->name,
                 'jenis' => 'Penyesuaian Kas',

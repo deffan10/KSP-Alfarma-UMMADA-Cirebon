@@ -32,7 +32,7 @@
     <tr><th colspan="2" class="text-center"><b>PERINCIAN DANA</b></th></tr>
     @isset($kas,$tot_pinjam)
     <tr><td>DANA BERGULIR</td><td>{{ 'Rp.'. number_format($tot_pinjam->total) }}</td></tr>
-    <tr><td>Dana Tersedia (dari transaksi harian)</td><td>{{ 'Rp.'. number_format($kas->total) }}</td></tr>
+    <tr><td>Kas Tersedia</td><td>{{ 'Rp.'. number_format($kas->total) }}</td></tr>
     <tr><td>Total Cicilan/Bulan (kita terima)</td><td>{{ 'Rp.'. number_format($total_cicilan_bulan ?? 0) }}</td></tr>
     @endisset
 </table>

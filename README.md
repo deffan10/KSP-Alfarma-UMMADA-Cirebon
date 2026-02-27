@@ -5,7 +5,7 @@
   <em>Sistem Informasi Manajemen Koperasi Simpan Pinjam</em>
 </p>
 <p align="center">
-  <strong>v3.3.0</strong>
+  <strong>v3.3.1</strong>
 </p>
 
 ---
@@ -52,9 +52,12 @@ Aplikasi web untuk mengelola **nasabah**, **simpanan**, **pinjaman**, **pembagia
 ### 💰 Pinjaman
 - CRUD pinjaman (total, jumlah angsuran, bunga, skema flat)  
 - Tampilan **cicilan per bulan** di tabel list  
+- **Kas Tersedia** di PERINCIAN DANA = Buku Besar (sama dengan Dashboard)  
 - **Re-check** status pinjaman (tutup yang sudah lunas)  
 - **Tombol Lunas** — tandai lunas agar nasabah bisa pinjam lagi  
 - **Relaksasi angsuran** — ubah tenor (mis. 5 → 7 bulan), cicilan otomatis dihitung ulang  
+- **Proses angsuran bulk** — bayar cicilan banyak sekaligus (centang beberapa angsuran)  
+- **Tagihkan ulang** — reset status angsuran yang error (mis. orphan pengembalian)  
 - Pencarian pinjaman  
 
 ### 📊 SHU (Sisa Hasil Usaha)
@@ -66,7 +69,7 @@ Aplikasi web untuk mengelola **nasabah**, **simpanan**, **pinjaman**, **pembagia
 - **PDF** — Laporan transaksi: kop (logo, nama koperasi, alamat, telepon); tabel transaksi + penyesuaian kas; tabel **PERINCIAN DANA** (Kas Tersedia, Dana Bergulir, Jumlah Simpanan Wajib, Keuntungan Bagi Hasil (berjalan), Total Saldo (Kas + Pinjaman)). Juga PDF per nasabah & per pinjaman.  
 - **Excel** — Laporan transaksi (termasuk **penyesuaian kas**), kolom Jenis (Transaksi / Penyesuaian Kas)  
 - **Rekap Mutasi Kas** — bandingkan kas buku besar vs transaksi vs saldo bank  
-- **Penyesuaian Kas** — jurnal operasional luar KSP (mengurangi Kas Tersedia)  
+- **Penyesuaian Kas** — jurnal **pengurangan** kas (operasional luar KSP: vendor, beras, biaya bank) dan **penambahan** kas (sponsor, donasi, hibah); keduanya tercatat di Buku Besar dan tampil di laporan PDF/Excel serta Rekap Kas  
 
 ### 📈 Dashboard
 - Statistik: total nasabah, kas tersedia, dana dipinjam, jumlah operator  
@@ -87,12 +90,24 @@ Nasabah (index, create, update, detail) · Transaksi · Operator · Profil
 | `pinjamans` | Data pinjaman (total, angsuran, persen, skema, status) |
 | `angsurans` | Cicilan per periode |
 | `pengembalians` | Riwayat pembayaran angsuran |
-| `general_ledgers` | Pembukuan (operasional, SHU, penyesuaian kas) |
+| `general_ledgers` | Pembukuan (operasional, SHU, penyesuaian kas: `penyesuaian` = keluar, `penyesuaian_masuk` = masuk) |
 | `profiles` | Profil koperasi (active) |
 
 **View:** `sisa_kas` · `tot_pinjam` · `laba` · `kas_masuk` · `kas_keluar` · `chart`  
 
 **Catatan:** `tot_pinjam` (Dana Bergulir) = **total sisa pinjaman yang belum dibayar** (jumlah angsuran status belum lunas), bukan jumlah awal pinjaman. Hanya pinjaman aktif (status=1).
+
+---
+
+## 💵 Sumber Data Kas (Buku Besar)
+
+| Halaman | Sumber Kas | Keterangan |
+|---------|------------|------------|
+| **Dashboard** | **Buku Besar** (`sisa_kas`) | Kas Tersedia = view `sisa_kas` (kas_masuk − kas_keluar, termasuk penyesuaian kas). |
+| **Pinjaman** | **Buku Besar** (`sisa_kas`) | Kas Tersedia di PERINCIAN DANA sama dengan Dashboard (diseragamkan v3.3.0). |
+| **Rekap Kas** | Keduanya + saldo bank | Menampilkan Buku Besar, transaksi harian (masuk − keluar dari `transaksis`), dan selisih; input saldo bank untuk rekonsiliasi. |
+
+**Kenapa Buku Besar?** Penyesuaian kas (pengurangan & penambahan, mis. operasional luar KSP atau sponsor/donasi) hanya tercatat di `general_ledgers` dan terhitung di view `sisa_kas` (via `kas_masuk` / `kas_keluar`). Transaksi harian saja tidak termasuk penyesuaian, sehingga bisa beda. Dashboard dan Pinjaman memakai Buku Besar agar angka konsisten. Rekap Kas dipakai untuk cek selisih Buku Besar vs transaksi vs bank.
 
 ---
 
@@ -142,18 +157,30 @@ Buka **http://localhost:8000**
 | Method | URI | Keterangan |
 |--------|-----|------------|
 | GET | `/` | Login |
-| GET | `/dashboard` | Dashboard |
-| Resource | `/nasabah` | Nasabah |
-| Resource | `/pinjaman` | Pinjaman |
-| GET | `/pinjaman/recheck-active` | Re-check pinjaman |
-| GET/POST | `/pinjaman/relaksasi/{id}` | Relaksasi angsuran |
+| GET | `/dashboard` | Dashboard (statistik, chart, Kas Tersedia dari Buku Besar) |
+| Resource | `/nasabah` | Nasabah (CRUD, transaksi, detail) |
+| POST | `/nasabah/search` | Pencarian nasabah |
+| POST | `/nasabah/transaksi` | Transaksi simpanan/penarikan |
+| Resource | `/pinjaman` | Pinjaman (CRUD, list cicilan, Kas Tersedia dari Buku Besar) |
+| POST | `/pinjaman/search` | Pencarian pinjaman |
+| GET | `/pinjaman/recheck-active` | Re-check pinjaman aktif |
+| GET/POST | `/pinjaman/relaksasi/{id}` | Relaksasi angsuran (ubah tenor) |
 | POST | `/pinjaman/{id}/lunas` | Tandai lunas |
-| GET/POST | `/shu` | SHU |
-| GET | `/laporan/lappdf`, `/laporan/lapxls` | Laporan transaksi PDF (berkop) / Excel |
-| GET | `/rekap-kas` | Rekap mutasi kas |
-| GET/POST | `/penyesuaian-kas` | Jurnal penyesuaian kas |
-| GET | `/operator` | Operator |
-| GET | `/profile` | Profil |
+| POST | `/pinjaman/proses-angsuran-bulk` | Proses angsuran bulk (cicilan banyak) |
+| POST | `/pinjaman/{id}/tagihkan-ulang` | Tagihkan ulang angsuran |
+| POST | `/pinjaman/get_name` | Get nama (AJAX) |
+| GET | `/shu` | SHU (dashboard, proses pembagian) |
+| POST | `/shu/proc` | Proses SHU |
+| GET | `/shu/ttp_buku` | Cetak buku SHU (TTP) |
+| POST | `/shu/ttp` | TTP (Tanda Terima Pembagian) |
+| GET | `/laporan/lappdf` | Laporan transaksi PDF (berkop, PERINCIAN DANA) |
+| GET | `/laporan/lapxls` | Laporan transaksi Excel (transaksi + penyesuaian kas) |
+| POST | `/laporan/transNas`, `/laporan/pinjNas` | Laporan PDF per nasabah / per pinjaman |
+| GET | `/rekap-kas` | Rekap mutasi kas (Buku Besar vs transaksi vs bank) |
+| GET/POST | `/penyesuaian-kas` | Daftar & input penyesuaian kas (pengurangan / penambahan) |
+| DELETE | `/penyesuaian-kas/{id}` | Hapus penyesuaian kas |
+| GET | `/operator` | Daftar operator |
+| GET | `/profile`, `/profile/{id}` | Profil koperasi |
 
 ---
 
@@ -167,6 +194,25 @@ Buka **http://localhost:8000**
 ---
 
 ## 📋 Changelog
+
+### v3.3.1
+
+#### ✨ Ditambah
+- **Penyesuaian kas penambahan** — Di menu Penyesuaian Kas bisa pilih **Penambahan kas** (sponsor, donasi, hibah) selain **Pengurangan kas** (operasional luar KSP). Penambahan memakai jenis transaksi `penyesuaian_masuk` dan masuk ke view `kas_masuk`, sehingga Kas Tersedia (Buku Besar) bertambah. Form: pilihan tipe (Pengurangan / Penambahan), nominal, keterangan. Tabel daftar menampilkan kolom Tipe (badge Penambahan/Pengurangan). Laporan PDF, Excel, dan Rekap Kas (rincian Buku Besar) sudah include penyesuaian masuk.
+
+#### 📝 Diubah
+- **Penyesuaian Kas** — Judul halaman disederhanakan jadi "Penyesuaian Kas"; deskripsi menjelaskan kedua tipe (pengurangan & penambahan). Hapus penyesuaian membalik efek ke Kas Tersedia (penambahan dihapus = kas berkurang, pengurangan dihapus = kas bertambah).
+
+---
+
+### v3.3.0
+
+#### 📝 Diubah
+- **Kas Tersedia diseragamkan** — Dashboard dan halaman Pinjaman memakai sumber yang sama: **Buku Besar** (view `sisa_kas`). Sebelumnya Pinjaman pakai hitungan dari transaksi harian (masuk − keluar), sehingga angka bisa beda (mis. belum termasuk penyesuaian kas). Sekarang angka Kas Tersedia di Dashboard dan di PERINCIAN DANA (Pinjaman) sama.
+- **Label Pinjaman** — Di PERINCIAN DANA, label "Dana Tersedia (dari transaksi harian)" diubah menjadi **"Kas Tersedia"** (konsisten dengan Dashboard).
+- **Rekap Kas** — Tetap menampilkan Buku Besar dan transaksi harian untuk rekonsiliasi; tidak diubah.
+
+---
 
 ### v3.0.2
 
@@ -202,4 +248,4 @@ Proyek berbasis Laravel (MIT). Sesuaikan dengan kebijakan KSP Alfarma UMMADA Cir
 
 ---
 
-**Versi:** 3.0.2
+**Versi:** 3.3.1

@@ -53,7 +53,7 @@ class RekapKasController extends Controller
 
         // Rincian Buku Besar (general_ledgers) per jenis — untuk cek kenapa selisih bisa selalu sama
         $gl_masuk = \DB::table('general_ledgers')
-            ->whereIn('jenis_transaksi', ['wajib', 'sukarela', 'pengembalian', 'denda', 'shu'])
+            ->whereIn('jenis_transaksi', ['wajib', 'sukarela', 'pengembalian', 'denda', 'shu', 'penyesuaian_masuk'])
             ->where('status_pembukuan', '1')
             ->selectRaw('jenis_transaksi, SUM(total) as total')
             ->groupBy('jenis_transaksi')

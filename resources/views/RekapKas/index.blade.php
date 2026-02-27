@@ -92,7 +92,7 @@
                 <table class="table table-sm table-bordered">
                     <tr><th class="text-center">Masuk (Buku Besar)</th></tr>
                     @forelse($gl_masuk as $r)
-                    <tr><td>{{ $r->jenis_transaksi }}</td><td class="text-end">Rp {{ number_format($r->total, 0, ',', '.') }}</td></tr>
+                    <tr><td>{{ $r->jenis_transaksi === 'penyesuaian_masuk' ? 'Penyesuaian (masuk)' : $r->jenis_transaksi }}</td><td class="text-end">Rp {{ number_format($r->total, 0, ',', '.') }}</td></tr>
                     @empty
                     <tr><td class="text-muted">—</td></tr>
                     @endforelse
@@ -103,7 +103,7 @@
                 <table class="table table-sm table-bordered">
                     <tr><th class="text-center">Keluar (Buku Besar)</th></tr>
                     @forelse($gl_keluar as $r)
-                    <tr><td>{{ $r->jenis_transaksi }}</td><td class="text-end">Rp {{ number_format($r->total, 0, ',', '.') }}</td></tr>
+                    <tr><td>{{ $r->jenis_transaksi === 'penyesuaian' ? 'Penyesuaian (keluar)' : $r->jenis_transaksi }}</td><td class="text-end">Rp {{ number_format($r->total, 0, ',', '.') }}</td></tr>
                     @empty
                     <tr><td class="text-muted">—</td></tr>
                     @endforelse

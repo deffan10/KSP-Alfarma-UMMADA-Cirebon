@@ -14,11 +14,11 @@ class PenyesuaianKasController extends Controller
     }
 
     /**
-     * Daftar jurnal penyesuaian kas / operasional luar KSP + form tambah.
+     * Daftar jurnal penyesuaian kas (pengurangan & penambahan) + form tambah.
      */
     public function index()
     {
-        $data['penyesuaian'] = General_ledger::where('jenis_transaksi', 'penyesuaian')
+        $data['penyesuaian'] = General_ledger::whereIn('jenis_transaksi', ['penyesuaian', 'penyesuaian_masuk'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
         $data['kas'] = \DB::table('sisa_kas')->first();
@@ -26,44 +26,58 @@ class PenyesuaianKasController extends Controller
     }
 
     /**
-     * Simpan jurnal penyesuaian kas (pengeluaran kas / operasional luar KSP).
+     * Simpan jurnal penyesuaian kas.
+     * tipe: keluar = pengurangan kas (operasional luar KSP), masuk = penambahan kas (sponsor, donasi, dll).
      */
     public function store(Request $request)
     {
         $request->validate([
             'total' => 'required|numeric|min:1',
+            'tipe' => 'required|in:keluar,masuk',
             'keterangan' => 'nullable|string|max:255',
         ]);
 
         $total = (int) $request->total;
         $user_id = \Auth::id();
+        $is_masuk = $request->tipe === 'masuk';
+        $jenis = $is_masuk ? 'penyesuaian_masuk' : 'penyesuaian';
+        $keterangan_default = $is_masuk ? 'Penyesuaian kas (penambahan)' : 'Penyesuaian kas / operasional luar KSP';
 
         General_ledger::create([
             'transaksi_id' => 0,
             'total' => $total,
-            'jenis_transaksi' => 'penyesuaian',
-            'keterangan' => $request->keterangan ?: 'Penyesuaian kas / operasional luar KSP',
+            'jenis_transaksi' => $jenis,
+            'keterangan' => $request->keterangan ?: $keterangan_default,
             'user_id' => $user_id,
             'status_pembukuan' => '1',
         ]);
 
-        Session::flash('pesan', 'Jurnal penyesuaian kas berhasil dicatat. Kas tersedia akan berkurang sebesar Rp ' . number_format($total, 0, ',', '.'));
+        if ($is_masuk) {
+            Session::flash('pesan', 'Jurnal penyesuaian kas (penambahan) berhasil dicatat. Kas tersedia bertambah Rp ' . number_format($total, 0, ',', '.'));
+        } else {
+            Session::flash('pesan', 'Jurnal penyesuaian kas berhasil dicatat. Kas tersedia berkurang Rp ' . number_format($total, 0, ',', '.'));
+        }
         return redirect()->route('penyesuaian-kas.index');
     }
 
     /**
-     * Hapus satu jurnal penyesuaian (mis. jika salah input / duplikat). Kas Tersedia akan bertambah kembali sebesar nominal tersebut.
+     * Hapus satu jurnal penyesuaian. Efek ke Kas Tersedia tergantung tipe (penambahan dihapus = kas berkurang, pengurangan dihapus = kas bertambah).
      */
     public function destroy($id)
     {
-        $row = General_ledger::where('id', $id)->where('jenis_transaksi', 'penyesuaian')->first();
+        $row = General_ledger::where('id', $id)->whereIn('jenis_transaksi', ['penyesuaian', 'penyesuaian_masuk'])->first();
         if (!$row) {
             Session::flash('pesan', 'Data penyesuaian tidak ditemukan.');
             return redirect()->route('penyesuaian-kas.index');
         }
         $total = $row->total;
+        $was_masuk = $row->jenis_transaksi === 'penyesuaian_masuk';
         $row->delete();
-        Session::flash('pesan', 'Penyesuaian Rp ' . number_format($total, 0, ',', '.') . ' telah dihapus. Kas Tersedia akan bertambah kembali.');
+        if ($was_masuk) {
+            Session::flash('pesan', 'Penyesuaian (penambahan) Rp ' . number_format($total, 0, ',', '.') . ' telah dihapus. Kas Tersedia akan berkurang sebesar nominal tersebut.');
+        } else {
+            Session::flash('pesan', 'Penyesuaian Rp ' . number_format($total, 0, ',', '.') . ' telah dihapus. Kas Tersedia akan bertambah kembali.');
+        }
         return redirect()->route('penyesuaian-kas.index');
     }
 }

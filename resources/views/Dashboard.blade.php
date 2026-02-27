@@ -30,6 +30,7 @@
                 <div class="card-wrap">
                   <div class="card-header">
                     <h4>Kas Tersedia</h4>
+                    <small class="text-muted d-block" style="font-size:0.7rem;">Buku Besar</small>
                   </div>
                   <div class="card-body">
                   Rp. {{ number_format($kas->total) }}
