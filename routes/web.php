@@ -41,6 +41,7 @@ Route::get('pinjaman/recheck-active', [PinjamanController::class,'recheck_active
 Route::get('pinjaman/relaksasi/{id}', [PinjamanController::class, 'relaksasi'])->name('pinjaman.relaksasi');
 Route::post('pinjaman/relaksasi', [PinjamanController::class, 'relaksasi_update'])->name('pinjaman.relaksasi.update');
 Route::post('pinjaman/{id}/lunas', [PinjamanController::class, 'mark_lunas'])->name('pinjaman.lunas');
+Route::post('pinjaman/{id}/proses-angsuran', [PinjamanController::class, 'proses_angsuran'])->name('pinjaman.proses-angsuran');
 Route::post('pinjaman/search', [PinjamanController::class,'search']);
 Route::resource('pinjaman', PinjamanController::class);
 

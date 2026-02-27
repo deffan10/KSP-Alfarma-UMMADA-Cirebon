@@ -178,7 +178,10 @@ class PinjamanController extends Controller
         $data['kas'] = \DB::table('sisa_kas')->first();
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
         $ids = $data['pinjaman']->pluck('id');
-        $data['cicilan'] = $ids->isNotEmpty() ? Angsuran::whereIn('pinjaman_id', $ids)->orderBy('id')->get()->groupBy('pinjaman_id')->map(fn ($g) => $g->first()->jumlah_cicilan) : collect();
+        $data['cicilan'] = $ids->isNotEmpty() ? $this->getCurrentCicilanPerPinjaman($ids) : collect();
+        $ids_aktif = Pinjaman::where('status', '1')->pluck('id');
+        $currentCicilan = $this->getCurrentCicilanPerPinjaman($ids_aktif);
+        $data['total_cicilan_bulan'] = $currentCicilan->sum();
         return view('Pinjaman.index', $data);
     }
 
@@ -233,9 +236,68 @@ class PinjamanController extends Controller
             \DB::table('nasabahs')->where('no_rekening', $request->no_rekening)->update(['status_pinjaman' => '0']);
             \DB::table('pinjamans')->where('id', $request->pinjaman_id)->update(['status' => '0']);
         }
-        
+
         return redirect("pinjaman/$request->pinjaman_id");
-        
+    }
+
+    /**
+     * Proses satu angsuran (bayar) dari halaman list pinjaman — angsuran tertunggak paling awal diproses.
+     */
+    public function proses_angsuran($id)
+    {
+        $pinjaman_id = (int) $id;
+        $pinjaman = Pinjaman::where('id', $pinjaman_id)->where('status', '1')->first();
+        if (!$pinjaman) {
+            Session::flash('pesan', 'Pinjaman tidak ditemukan atau sudah lunas.');
+            return redirect('pinjaman');
+        }
+
+        $angsuran = \DB::table('angsurans')
+            ->where('pinjaman_id', $pinjaman_id)
+            ->where('status', '1')
+            ->orderBy('id')
+            ->first();
+
+        if (!$angsuran) {
+            Session::flash('pesan', 'Tidak ada angsuran tertunggak untuk pinjaman ini.');
+            return redirect('pinjaman');
+        }
+
+        $nasabah = \DB::table('nasabahs')
+            ->where('no_rekening', $pinjaman->no_rekening)
+            ->first();
+        if (!$nasabah) {
+            Session::flash('pesan', 'Data nasabah tidak ditemukan.');
+            return redirect('pinjaman');
+        }
+
+        $user_id = \Auth::id();
+        $jumlah_cicilan = (float) $angsuran->jumlah_cicilan;
+
+        \DB::table('angsurans')->where('id', $angsuran->id)->update(['status' => '0']);
+        \DB::table('transaksis')->insert([
+            'nasabah_id' => $nasabah->id,
+            'total' => $jumlah_cicilan,
+            'jenis_transaksi' => 'pengembalian',
+            'user_id' => $user_id,
+            'created_at' => now(),
+        ]);
+        \DB::table('pengembalians')->insert([
+            'pinjaman_id' => $pinjaman_id,
+            'jumlah_cicilan' => $jumlah_cicilan,
+            'created_at' => now(),
+        ]);
+
+        $remaining = \DB::table('angsurans')->where('pinjaman_id', $pinjaman_id)->where('status', '1')->count();
+        if ($remaining === 0) {
+            \DB::table('nasabahs')->where('no_rekening', $pinjaman->no_rekening)->update(['status_pinjaman' => '0']);
+            \DB::table('pinjamans')->where('id', $pinjaman_id)->update(['status' => '0']);
+            Session::flash('pesan', 'Angsuran berhasil dicatat. Pinjaman sudah lunas.');
+        } else {
+            Session::flash('pesan', 'Angsuran Rp ' . number_format($jumlah_cicilan, 0, ',', '.') . ' berhasil dicatat. Sisa ' . $remaining . ' angsuran.');
+        }
+
+        return redirect('pinjaman');
     }
 
     /**

@@ -44,6 +44,9 @@
         {!! Form::open(array('url'=>'pinjaman/'.$p->id,'method'=>'delete')) !!}
         {!! Form::button('<i class="fas fa-times"></i> Batalkan',['type'=>'submit','class'=>'btn btn-danger btn-sm',"onclick"=>"return confirm('Batalkan pinjaman? Data pinjaman akan dihapus.')"]) !!}
         {!! Form::close() !!}
+        {!! Form::open(array('url'=>route('pinjaman.proses-angsuran', $p->id),'method'=>'post','class'=>'d-inline')) !!}
+        {!! Form::button('<i class="fas fa-money-check"></i> Bayar Angsuran',['type'=>'submit','class'=>'btn btn-success btn-sm',"onclick"=>"return confirm('Proses 1 angsuran untuk pemilik pinjaman ini?')"]) !!}
+        {!! Form::close() !!}
         {!! link_to('pinjaman/'.$p->id,'Angsuran',['class'=>'btn btn-warning btn-sm']) !!}
         <a href="{{ route('pinjaman.relaksasi', $p->id) }}" class="btn btn-info btn-sm" title="Ubah jumlah angsuran (relaksasi)"><i class="fas fa-calendar-alt"></i> Relaksasi</a>
         @else
