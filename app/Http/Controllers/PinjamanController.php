@@ -305,7 +305,9 @@ class PinjamanController extends Controller
     }
 
     /**
-     * Tagihkan ulang (per peminjam): batalkan 1 angsuran terakhir untuk pinjaman ini, sehingga sisa angsuran bertambah lagi.
+     * Tagihkan ulang (per peminjam): batalkan 1 angsuran terakhir untuk pinjaman ini.
+     * Juga menangani kasus "orphan": transaksi pengembalian masuk 2x tapi insert pengembalians gagal (error out of range),
+     * jadi tidak ada record di pengembalians tapi ada angsuran status=0 dan transaksi pengembalian.
      */
     public function tagihkan_ulang($id)
     {
@@ -316,31 +318,10 @@ class PinjamanController extends Controller
             return redirect('pinjaman');
         }
 
-        $p = \DB::table('pengembalians')
-            ->where('pinjaman_id', $pinjaman_id)
-            ->orderBy('id', 'desc')
-            ->first();
-
-        if (!$p) {
-            Session::flash('pesan', 'Tidak ada angsuran yang sudah dibayar untuk pinjaman ini.');
-            return redirect('pinjaman');
-        }
-
         $nasabah = \DB::table('nasabahs')->where('no_rekening', $pinjaman->no_rekening)->first();
         if (!$nasabah) {
             Session::flash('pesan', 'Data nasabah tidak ditemukan.');
             return redirect('pinjaman');
-        }
-
-        $transaksi = \DB::table('transaksis')
-            ->where('nasabah_id', $nasabah->id)
-            ->where('total', $p->jumlah_cicilan)
-            ->where('jenis_transaksi', 'pengembalian')
-            ->where('created_at', '>=', date('Y-m-d H:i:s', strtotime($p->created_at) - 5))
-            ->where('created_at', '<=', date('Y-m-d H:i:s', strtotime($p->created_at) + 5))
-            ->first();
-        if ($transaksi) {
-            \DB::table('transaksis')->where('id', $transaksi->id)->delete();
         }
 
         $angsuran = \DB::table('angsurans')
@@ -348,11 +329,43 @@ class PinjamanController extends Controller
             ->where('status', '0')
             ->orderBy('id', 'desc')
             ->first();
-        if ($angsuran) {
-            \DB::table('angsurans')->where('id', $angsuran->id)->update(['status' => '1']);
+
+        if (!$angsuran) {
+            Session::flash('pesan', 'Tidak ada angsuran yang sudah dibayar untuk pinjaman ini.');
+            return redirect('pinjaman');
         }
 
-        \DB::table('pengembalians')->where('id', $p->id)->delete();
+        $jumlah_cicilan = (float) $angsuran->jumlah_cicilan;
+        $p = \DB::table('pengembalians')
+            ->where('pinjaman_id', $pinjaman_id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($p) {
+            $transaksi = \DB::table('transaksis')
+                ->where('nasabah_id', $nasabah->id)
+                ->where('total', $p->jumlah_cicilan)
+                ->where('jenis_transaksi', 'pengembalian')
+                ->where('created_at', '>=', date('Y-m-d H:i:s', strtotime($p->created_at) - 5))
+                ->where('created_at', '<=', date('Y-m-d H:i:s', strtotime($p->created_at) + 5))
+                ->first();
+            if ($transaksi) {
+                \DB::table('transaksis')->where('id', $transaksi->id)->delete();
+            }
+            \DB::table('pengembalians')->where('id', $p->id)->delete();
+        } else {
+            $transaksi = \DB::table('transaksis')
+                ->where('nasabah_id', $nasabah->id)
+                ->where('total', $jumlah_cicilan)
+                ->where('jenis_transaksi', 'pengembalian')
+                ->orderBy('created_at', 'desc')
+                ->first();
+            if ($transaksi) {
+                \DB::table('transaksis')->where('id', $transaksi->id)->delete();
+            }
+        }
+
+        \DB::table('angsurans')->where('id', $angsuran->id)->update(['status' => '1']);
 
         if ($pinjaman->status === '0') {
             \DB::table('pinjamans')->where('id', $pinjaman_id)->update(['status' => '1']);

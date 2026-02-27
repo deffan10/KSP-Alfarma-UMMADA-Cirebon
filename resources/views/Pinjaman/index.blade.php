@@ -43,6 +43,8 @@
         @php
         $hasUnpaid = \App\Models\Angsuran::where(['pinjaman_id' => $p->id,'status'=>'1'])->exists();
         $hasPengembalian = \DB::table('pengembalians')->where('pinjaman_id', $p->id)->exists();
+        $hasPaidAngsuran = \DB::table('angsurans')->where('pinjaman_id', $p->id)->where('status', '0')->exists();
+        $showTagihkanUlang = $hasPengembalian || $hasPaidAngsuran;
         @endphp
         @if ($hasUnpaid)
         {!! Form::open(array('url'=>'pinjaman/'.$p->id,'method'=>'delete')) !!}
@@ -56,7 +58,7 @@
         {!! Form::close() !!}
         {!! link_to('pinjaman/'.$p->id,'Angsuran',['class'=>'btn btn-warning btn-sm disabled']) !!}
         @endif
-        @if ($hasPengembalian)
+        @if ($showTagihkanUlang)
         {!! Form::open(array('url'=>route('pinjaman.tagihkan-ulang', $p->id),'method'=>'post','class'=>'d-inline')) !!}
         {!! Form::button('<i class="fas fa-undo"></i> Tagihkan Ulang',['type'=>'submit','class'=>'btn btn-outline-secondary btn-sm',"onclick"=>"return confirm('Batalkan 1 angsuran terakhir untuk peminjam ini? Angsuran akan ditambah lagi.')"]) !!}
         {!! Form::close() !!}
