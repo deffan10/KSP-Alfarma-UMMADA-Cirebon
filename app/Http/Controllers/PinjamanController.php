@@ -45,6 +45,7 @@ class PinjamanController extends Controller
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
         $ids = $data['pinjaman']->pluck('id');
         $data['cicilan'] = $this->getCurrentCicilanPerPinjaman($ids);
+        $data['sisa_angsuran'] = Angsuran::whereIn('pinjaman_id', $ids)->where('status', '1')->selectRaw('pinjaman_id, count(*) as sisa')->groupBy('pinjaman_id')->pluck('sisa', 'pinjaman_id');
         // Total cicilan/bulan yang kita terima (dari semua pinjaman aktif, pakai cicilan terkini setelah relaksasi)
         $ids_aktif = Pinjaman::where('status', '1')->pluck('id');
         $currentCicilan = $this->getCurrentCicilanPerPinjaman($ids_aktif);
@@ -179,6 +180,7 @@ class PinjamanController extends Controller
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
         $ids = $data['pinjaman']->pluck('id');
         $data['cicilan'] = $ids->isNotEmpty() ? $this->getCurrentCicilanPerPinjaman($ids) : collect();
+        $data['sisa_angsuran'] = $ids->isNotEmpty() ? Angsuran::whereIn('pinjaman_id', $ids)->where('status', '1')->selectRaw('pinjaman_id, count(*) as sisa')->groupBy('pinjaman_id')->pluck('sisa', 'pinjaman_id') : collect();
         $ids_aktif = Pinjaman::where('status', '1')->pluck('id');
         $currentCicilan = $this->getCurrentCicilanPerPinjaman($ids_aktif);
         $data['total_cicilan_bulan'] = $currentCicilan->sum();

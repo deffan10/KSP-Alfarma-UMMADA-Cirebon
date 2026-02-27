@@ -34,11 +34,11 @@
 {!! link_to('pinjaman/create','+Tambah Data',['class'=>'btn btn-danger btn-sm']) !!}
 <br><br>
 <table class="table table-striped" >
-    <tr><th colspan="8" class="text-center"><b>DATA PINJAMAN</b></th></tr>
-    <tr><th>Tanggal Peminjaman</th><th>Nama</th><th>Jumlah Pinjaman</th><th>Jumlah Angsuran</th><th>Cicilan/Bulan</th><th>Keterangan</th><th colspan="2"></th></tr>
+    <tr><th colspan="9" class="text-center"><b>DATA PINJAMAN</b></th></tr>
+    <tr><th>Tanggal Peminjaman</th><th>Nama</th><th>Jumlah Pinjaman</th><th>Jumlah Angsuran</th><th>Sisa Angsuran</th><th>Cicilan/Bulan</th><th>Keterangan</th><th colspan="2"></th></tr>
     @isset($pinjaman)
     @foreach($pinjaman as $p)
-    <tr><td>{{ tgl_id($p->created_at) }}</td><td>{{ $p->nama_lengkap }}</td><td>{{ number_format($p->total) }}</td><td>{{ $p->angsuran }}</td><td>Rp {{ isset($cicilan[$p->id]) ? number_format($cicilan[$p->id], 0, ',', '.') : '-' }}</td><td>{{ $p->ket }}</td>
+    <tr><td>{{ tgl_id($p->created_at) }}</td><td>{{ $p->nama_lengkap }}</td><td>{{ number_format($p->total) }}</td><td>{{ $p->angsuran }}</td><td>{{ $sisa_angsuran[$p->id] ?? 0 }}</td><td>Rp {{ isset($cicilan[$p->id]) ? number_format($cicilan[$p->id], 0, ',', '.') : '-' }}</td><td>{{ $p->ket }}</td>
     <td width="240" class="">
         @php
         $hasUnpaid = \App\Models\Angsuran::where(['pinjaman_id' => $p->id,'status'=>'1'])->exists();
