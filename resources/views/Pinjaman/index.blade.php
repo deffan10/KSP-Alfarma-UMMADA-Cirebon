@@ -42,6 +42,7 @@
     <td width="240" class="">
         @php
         $hasUnpaid = \App\Models\Angsuran::where(['pinjaman_id' => $p->id,'status'=>'1'])->exists();
+        $hasPengembalian = \DB::table('pengembalians')->where('pinjaman_id', $p->id)->exists();
         @endphp
         @if ($hasUnpaid)
         {!! Form::open(array('url'=>'pinjaman/'.$p->id,'method'=>'delete')) !!}
@@ -54,6 +55,11 @@
         {!! Form::button('<i class="fas fa-check"></i> Lunas',['type'=>'submit','class'=>'btn btn-success btn-sm',"onclick"=>"return confirm('Tandai pinjaman sebagai lunas? Nasabah dapat mengajukan pinjaman baru.')"]) !!}
         {!! Form::close() !!}
         {!! link_to('pinjaman/'.$p->id,'Angsuran',['class'=>'btn btn-warning btn-sm disabled']) !!}
+        @endif
+        @if ($hasPengembalian)
+        {!! Form::open(array('url'=>route('pinjaman.tagihkan-ulang', $p->id),'method'=>'post','class'=>'d-inline')) !!}
+        {!! Form::button('<i class="fas fa-undo"></i> Tagihkan Ulang',['type'=>'submit','class'=>'btn btn-outline-secondary btn-sm',"onclick"=>"return confirm('Batalkan 1 angsuran terakhir untuk peminjam ini? Angsuran akan ditambah lagi.')"]) !!}
+        {!! Form::close() !!}
         @endif
     @endforeach
     {!! $pinjaman->render() !!}

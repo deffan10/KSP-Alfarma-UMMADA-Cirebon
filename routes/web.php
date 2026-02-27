@@ -42,6 +42,7 @@ Route::get('pinjaman/relaksasi/{id}', [PinjamanController::class, 'relaksasi'])-
 Route::post('pinjaman/relaksasi', [PinjamanController::class, 'relaksasi_update'])->name('pinjaman.relaksasi.update');
 Route::post('pinjaman/{id}/lunas', [PinjamanController::class, 'mark_lunas'])->name('pinjaman.lunas');
 Route::post('pinjaman/proses-angsuran-bulk', [PinjamanController::class, 'proses_angsuran_bulk'])->name('pinjaman.proses-angsuran-bulk');
+Route::post('pinjaman/{id}/tagihkan-ulang', [PinjamanController::class, 'tagihkan_ulang'])->name('pinjaman.tagihkan-ulang');
 Route::post('pinjaman/search', [PinjamanController::class,'search']);
 Route::resource('pinjaman', PinjamanController::class);
 

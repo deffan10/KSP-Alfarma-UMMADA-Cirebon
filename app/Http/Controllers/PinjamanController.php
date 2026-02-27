@@ -247,6 +247,8 @@ class PinjamanController extends Controller
      */
     public function proses_angsuran_bulk()
     {
+        Session::put('last_bulk_angsuran_run', now()->toDateTimeString());
+
         $pinjamans = Pinjaman::where('status', '1')->get();
         $user_id = \Auth::id();
         $processed = 0;
@@ -299,6 +301,65 @@ class PinjamanController extends Controller
             Session::flash('pesan', 'Proses angsuran selesai: ' . $processed . ' peminjam diproses.' . ($lunas > 0 ? ' ' . $lunas . ' pinjaman lunas.' : ''));
         }
 
+        return redirect('pinjaman');
+    }
+
+    /**
+     * Tagihkan ulang (per peminjam): batalkan 1 angsuran terakhir untuk pinjaman ini, sehingga sisa angsuran bertambah lagi.
+     */
+    public function tagihkan_ulang($id)
+    {
+        $pinjaman_id = (int) $id;
+        $pinjaman = \DB::table('pinjamans')->where('id', $pinjaman_id)->first();
+        if (!$pinjaman) {
+            Session::flash('pesan', 'Pinjaman tidak ditemukan.');
+            return redirect('pinjaman');
+        }
+
+        $p = \DB::table('pengembalians')
+            ->where('pinjaman_id', $pinjaman_id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$p) {
+            Session::flash('pesan', 'Tidak ada angsuran yang sudah dibayar untuk pinjaman ini.');
+            return redirect('pinjaman');
+        }
+
+        $nasabah = \DB::table('nasabahs')->where('no_rekening', $pinjaman->no_rekening)->first();
+        if (!$nasabah) {
+            Session::flash('pesan', 'Data nasabah tidak ditemukan.');
+            return redirect('pinjaman');
+        }
+
+        $transaksi = \DB::table('transaksis')
+            ->where('nasabah_id', $nasabah->id)
+            ->where('total', $p->jumlah_cicilan)
+            ->where('jenis_transaksi', 'pengembalian')
+            ->where('created_at', '>=', date('Y-m-d H:i:s', strtotime($p->created_at) - 5))
+            ->where('created_at', '<=', date('Y-m-d H:i:s', strtotime($p->created_at) + 5))
+            ->first();
+        if ($transaksi) {
+            \DB::table('transaksis')->where('id', $transaksi->id)->delete();
+        }
+
+        $angsuran = \DB::table('angsurans')
+            ->where('pinjaman_id', $pinjaman_id)
+            ->where('status', '0')
+            ->orderBy('id', 'desc')
+            ->first();
+        if ($angsuran) {
+            \DB::table('angsurans')->where('id', $angsuran->id)->update(['status' => '1']);
+        }
+
+        \DB::table('pengembalians')->where('id', $p->id)->delete();
+
+        if ($pinjaman->status === '0') {
+            \DB::table('pinjamans')->where('id', $pinjaman_id)->update(['status' => '1']);
+            \DB::table('nasabahs')->where('no_rekening', $pinjaman->no_rekening)->update(['status_pinjaman' => '1']);
+        }
+
+        Session::flash('pesan', 'Tagihkan ulang berhasil: 1 angsuran dibatalkan untuk peminjam ini. Sisa angsuran bertambah.');
         return redirect('pinjaman');
     }
 
