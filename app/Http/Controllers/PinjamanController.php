@@ -30,6 +30,11 @@ class PinjamanController extends Controller
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
         $ids = $data['pinjaman']->pluck('id');
         $data['cicilan'] = Angsuran::whereIn('pinjaman_id', $ids)->orderBy('id')->get()->groupBy('pinjaman_id')->map(fn ($g) => $g->first()->jumlah_cicilan);
+        // Total cicilan/bulan yang kita terima (dari semua pinjaman aktif)
+        $ids_aktif = Pinjaman::where('status', '1')->pluck('id');
+        $data['total_cicilan_bulan'] = Angsuran::whereIn('pinjaman_id', $ids_aktif)
+            ->orderBy('pinjaman_id')->orderBy('id')
+            ->get()->groupBy('pinjaman_id')->sum(fn ($g) => (float) $g->first()->jumlah_cicilan);
         return view('Pinjaman.index', $data);
     }
 

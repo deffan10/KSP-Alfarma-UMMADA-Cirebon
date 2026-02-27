@@ -24,6 +24,7 @@
     @isset($kas,$tot_pinjam)
     <tr><td>DANA BERGULIR</td><td>{{ 'Rp.'. number_format($tot_pinjam->total) }}</td></tr>
     <tr><td>DANA TERSEDIA</td><td>{{ 'Rp.'. number_format($kas->total) }}</td></tr>
+    <tr><td>Total Cicilan/Bulan (kita terima)</td><td>{{ 'Rp.'. number_format($total_cicilan_bulan ?? 0) }}</td></tr>
     @endisset
 </table>
 <br>

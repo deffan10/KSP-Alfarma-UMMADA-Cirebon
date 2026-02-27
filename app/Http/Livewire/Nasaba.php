@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Nasabah;
+use App\Models\Transaksi;
 
 class Nasaba extends Component
 {
@@ -16,6 +17,14 @@ class Nasaba extends Component
     public $search = '';
     /** Filter status pinjaman: all, ada, tidak */
     public $filterPinjaman = 'all';
+    /** Jumlah data per halaman */
+    public $perPage = 10;
+    /** ID nasabah yang dicentang (untuk bulk aksi) */
+    public $selectedIds = [];
+    /** Modal bulk transaksi */
+    public $showBulkTransaksiModal = false;
+    public $bulkJumlah = '';
+    public $bulkJenis = '';
     public $no_rekening, $nama_lengkap, $alamat, $telp, $no_ktp, $saldo_akhir, $status, $foto;
 
     public function render()
@@ -35,7 +44,7 @@ class Nasaba extends Component
             $nasaba->where('status_pinjaman', '0');
         }
 
-        $nasaba = $nasaba->paginate(10);
+        $nasaba = $nasaba->paginate((int) $this->perPage ?: 10);
         return view('livewire.nasabah.index', ['nasaba' => $nasaba]);
     }
 
@@ -47,6 +56,92 @@ class Nasaba extends Component
     public function updatingFilterPinjaman()
     {
         $this->resetPage();
+    }
+
+    public function updatingPerPage()
+    {
+        $this->resetPage();
+    }
+
+    /** Toggle satu nasabah di checklist */
+    public function toggleSelect($id)
+    {
+        $id = (int) $id;
+        if (in_array($id, $this->selectedIds)) {
+            $this->selectedIds = array_values(array_diff($this->selectedIds, [$id]));
+        } else {
+            $this->selectedIds = array_merge($this->selectedIds, [$id]);
+        }
+    }
+
+    /** Pilih semua nasabah di halaman saat ini */
+    public function selectAllPage($ids)
+    {
+        $ids = is_array($ids) ? $ids : json_decode($ids, true);
+        if (!is_array($ids)) return;
+        $this->selectedIds = array_values(array_unique(array_merge($this->selectedIds, $ids)));
+    }
+
+    /** Hapus semua pilihan */
+    public function clearSelection()
+    {
+        $this->selectedIds = [];
+    }
+
+    /** Buka modal bulk transaksi (hanya jika ada yang terpilih) */
+    public function openBulkTransaksiModal()
+    {
+        if (count($this->selectedIds) > 0) {
+            $this->bulkJumlah = '';
+            $this->bulkJenis = 'wajib';
+            $this->showBulkTransaksiModal = true;
+        }
+    }
+
+    public function closeBulkTransaksiModal()
+    {
+        $this->showBulkTransaksiModal = false;
+        $this->bulkJumlah = '';
+        $this->bulkJenis = '';
+    }
+
+    /** Proses bulk transaksi: wajib/sukarela saja, sama jumlah & jenis untuk semua terpilih */
+    public function submitBulkTransaksi()
+    {
+        $this->validate([
+            'bulkJumlah' => 'required|numeric|min:1',
+            'bulkJenis'  => 'required|in:wajib,sukarela',
+        ], [
+            'bulkJumlah.required' => 'Jumlah wajib diisi.',
+            'bulkJumlah.numeric'  => 'Jumlah harus angka.',
+            'bulkJenis.in'       => 'Jenis hanya Simpanan Wajib atau Sukarela.',
+        ]);
+
+        $total = (float) $this->bulkJumlah;
+        $jenis = $this->bulkJenis;
+        $user_id = \Auth::id();
+        $done = 0;
+        $errors = [];
+
+        foreach ($this->selectedIds as $nasabah_id) {
+            $nasabah = Nasabah::find($nasabah_id);
+            if (!$nasabah) continue;
+            $saldo = (float) ($nasabah->saldo_akhir ?? 0);
+            $nsaldo = $saldo + $total;
+            $nasabah->saldo_akhir = $nsaldo;
+            $nasabah->save();
+            Transaksi::create([
+                'nasabah_id' => $nasabah_id,
+                'total' => $total,
+                'jenis_transaksi' => $jenis,
+                'user_id' => $user_id,
+            ]);
+            $done++;
+        }
+
+        $this->closeBulkTransaksiModal();
+        $this->selectedIds = [];
+        session()->flash('pesan', 'Bulk transaksi berhasil: ' . $done . ' nasabah ('.$jenis.' Rp '.number_format($total, 0, ',', '.').').');
     }
 
     public function edit($id)
