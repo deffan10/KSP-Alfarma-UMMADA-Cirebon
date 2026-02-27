@@ -23,18 +23,32 @@ class PinjamanController extends Controller
         $this->middleware('check');
     }
 
+    /**
+     * Untuk tiap pinjaman: cicilan yang dipakai = angsuran belum bayar (status 1) jika ada (hasil relaksasi/create), else angsuran terakhir.
+     */
+    private function getCurrentCicilanPerPinjaman($pinjaman_ids)
+    {
+        $groups = Angsuran::whereIn('pinjaman_id', $pinjaman_ids)->orderBy('pinjaman_id')->orderBy('id')->get()->groupBy('pinjaman_id');
+        return $groups->map(function ($group) {
+            $unpaid = $group->where('status', '1')->first();
+            if ($unpaid) {
+                return (float) $unpaid->jumlah_cicilan;
+            }
+            return (float) $group->last()->jumlah_cicilan;
+        });
+    }
+
     public function index()
     {
         $data['pinjaman'] = Pinjaman::where('status','1')->paginate(20);
         $data['kas'] = \DB::table('sisa_kas')->first();
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
         $ids = $data['pinjaman']->pluck('id');
-        $data['cicilan'] = Angsuran::whereIn('pinjaman_id', $ids)->orderBy('id')->get()->groupBy('pinjaman_id')->map(fn ($g) => $g->first()->jumlah_cicilan);
-        // Total cicilan/bulan yang kita terima (dari semua pinjaman aktif)
+        $data['cicilan'] = $this->getCurrentCicilanPerPinjaman($ids);
+        // Total cicilan/bulan yang kita terima (dari semua pinjaman aktif, pakai cicilan terkini setelah relaksasi)
         $ids_aktif = Pinjaman::where('status', '1')->pluck('id');
-        $data['total_cicilan_bulan'] = Angsuran::whereIn('pinjaman_id', $ids_aktif)
-            ->orderBy('pinjaman_id')->orderBy('id')
-            ->get()->groupBy('pinjaman_id')->sum(fn ($g) => (float) $g->first()->jumlah_cicilan);
+        $currentCicilan = $this->getCurrentCicilanPerPinjaman($ids_aktif);
+        $data['total_cicilan_bulan'] = $currentCicilan->sum();
         return view('Pinjaman.index', $data);
     }
 
