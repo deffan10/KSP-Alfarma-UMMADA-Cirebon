@@ -50,4 +50,20 @@ class PenyesuaianKasController extends Controller
         Session::flash('pesan', 'Jurnal penyesuaian kas berhasil dicatat. Kas tersedia akan berkurang sebesar Rp ' . number_format($total, 0, ',', '.'));
         return redirect()->route('penyesuaian-kas.index');
     }
+
+    /**
+     * Hapus satu jurnal penyesuaian (mis. jika salah input / duplikat). Kas Tersedia akan bertambah kembali sebesar nominal tersebut.
+     */
+    public function destroy($id)
+    {
+        $row = General_ledger::where('id', $id)->where('jenis_transaksi', 'penyesuaian')->first();
+        if (!$row) {
+            Session::flash('pesan', 'Data penyesuaian tidak ditemukan.');
+            return redirect()->route('penyesuaian-kas.index');
+        }
+        $total = $row->total;
+        $row->delete();
+        Session::flash('pesan', 'Penyesuaian Rp ' . number_format($total, 0, ',', '.') . ' telah dihapus. Kas Tersedia akan bertambah kembali.');
+        return redirect()->route('penyesuaian-kas.index');
+    }
 }

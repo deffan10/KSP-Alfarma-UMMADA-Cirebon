@@ -51,6 +51,22 @@ class RekapKasController extends Controller
         $selisih_gl_vs_bank = $saldo_bank_input !== null ? $kas_dari_gl - $saldo_bank_input : null;
         $selisih_trans_vs_bank = $saldo_bank_input !== null ? $kas_dari_transaksis - $saldo_bank_input : null;
 
+        // Rincian Buku Besar (general_ledgers) per jenis — untuk cek kenapa selisih bisa selalu sama
+        $gl_masuk = \DB::table('general_ledgers')
+            ->whereIn('jenis_transaksi', ['wajib', 'sukarela', 'pengembalian', 'denda', 'shu'])
+            ->where('status_pembukuan', '1')
+            ->selectRaw('jenis_transaksi, SUM(total) as total')
+            ->groupBy('jenis_transaksi')
+            ->get();
+        $gl_keluar = \DB::table('general_ledgers')
+            ->whereIn('jenis_transaksi', ['debet', 'operasional', 'pinjaman', 'penyesuaian'])
+            ->where('status_pembukuan', '1')
+            ->selectRaw('jenis_transaksi, SUM(total) as total')
+            ->groupBy('jenis_transaksi')
+            ->get();
+        $total_gl_masuk = $gl_masuk->sum('total');
+        $total_gl_keluar = $gl_keluar->sum('total');
+
         return view('RekapKas.index', [
             'kas_dari_gl' => $kas_dari_gl,
             'kas_dari_transaksis' => $kas_dari_transaksis,
@@ -62,6 +78,10 @@ class RekapKasController extends Controller
             'selisih_gl_vs_trans' => $selisih_gl_vs_trans,
             'selisih_gl_vs_bank' => $selisih_gl_vs_bank,
             'selisih_trans_vs_bank' => $selisih_trans_vs_bank,
+            'gl_masuk' => $gl_masuk,
+            'gl_keluar' => $gl_keluar,
+            'total_gl_masuk' => $total_gl_masuk,
+            'total_gl_keluar' => $total_gl_keluar,
         ]);
     }
 }

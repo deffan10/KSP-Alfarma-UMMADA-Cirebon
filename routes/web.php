@@ -35,6 +35,7 @@ Route::get('laporan/lapxls',[App\Http\Controllers\LaporanController::class,'lapX
 Route::get('rekap-kas', [App\Http\Controllers\RekapKasController::class, 'index'])->name('rekap-kas');
 Route::get('penyesuaian-kas', [App\Http\Controllers\PenyesuaianKasController::class, 'index'])->name('penyesuaian-kas.index');
 Route::post('penyesuaian-kas', [App\Http\Controllers\PenyesuaianKasController::class, 'store'])->name('penyesuaian-kas.store');
+Route::delete('penyesuaian-kas/{id}', [App\Http\Controllers\PenyesuaianKasController::class, 'destroy'])->name('penyesuaian-kas.destroy');
 
 // Pinjaman routes
 Route::get('pinjaman/recheck-active', [PinjamanController::class,'recheck_active_loans'])->name('pinjaman.recheck');

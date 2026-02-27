@@ -46,6 +46,7 @@
                     <th>Tanggal</th>
                     <th>Keterangan</th>
                     <th class="text-end">Jumlah</th>
+                    <th width="80">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -54,10 +55,15 @@
                     <td>{{ $p->created_at ? $p->created_at->format('d-m-Y H:i') : '-' }}</td>
                     <td>{{ $p->keterangan ?? 'Penyesuaian kas / operasional luar KSP' }}</td>
                     <td class="text-end">Rp {{ number_format($p->total, 0, ',', '.') }}</td>
+                    <td>
+                        {!! Form::open(['url' => route('penyesuaian-kas.destroy', $p->id), 'method' => 'delete', 'class' => 'd-inline']) !!}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus penyesuaian ini? Kas Tersedia akan bertambah kembali sebesar nominal tersebut.');"><i class="fas fa-trash"></i></button>
+                        {!! Form::close() !!}
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="3" class="text-center text-muted">Belum ada data penyesuaian kas.</td>
+                    <td colspan="4" class="text-center text-muted">Belum ada data penyesuaian kas.</td>
                 </tr>
                 @endforelse
             </tbody>
