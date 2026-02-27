@@ -241,60 +241,60 @@ class PinjamanController extends Controller
     }
 
     /**
-     * Proses satu angsuran (bayar) dari halaman list pinjaman — angsuran tertunggak paling awal diproses.
+     * Proses satu angsuran untuk semua peminjam aktif (bulk). Tiap pinjaman yang punya angsuran tertunggak diproses 1 angsuran.
      */
-    public function proses_angsuran($id)
+    public function proses_angsuran_bulk()
     {
-        $pinjaman_id = (int) $id;
-        $pinjaman = Pinjaman::where('id', $pinjaman_id)->where('status', '1')->first();
-        if (!$pinjaman) {
-            Session::flash('pesan', 'Pinjaman tidak ditemukan atau sudah lunas.');
-            return redirect('pinjaman');
-        }
-
-        $angsuran = \DB::table('angsurans')
-            ->where('pinjaman_id', $pinjaman_id)
-            ->where('status', '1')
-            ->orderBy('id')
-            ->first();
-
-        if (!$angsuran) {
-            Session::flash('pesan', 'Tidak ada angsuran tertunggak untuk pinjaman ini.');
-            return redirect('pinjaman');
-        }
-
-        $nasabah = \DB::table('nasabahs')
-            ->where('no_rekening', $pinjaman->no_rekening)
-            ->first();
-        if (!$nasabah) {
-            Session::flash('pesan', 'Data nasabah tidak ditemukan.');
-            return redirect('pinjaman');
-        }
-
+        $pinjamans = Pinjaman::where('status', '1')->get();
         $user_id = \Auth::id();
-        $jumlah_cicilan = (float) $angsuran->jumlah_cicilan;
+        $processed = 0;
+        $lunas = 0;
 
-        \DB::table('angsurans')->where('id', $angsuran->id)->update(['status' => '0']);
-        \DB::table('transaksis')->insert([
-            'nasabah_id' => $nasabah->id,
-            'total' => $jumlah_cicilan,
-            'jenis_transaksi' => 'pengembalian',
-            'user_id' => $user_id,
-            'created_at' => now(),
-        ]);
-        \DB::table('pengembalians')->insert([
-            'pinjaman_id' => $pinjaman_id,
-            'jumlah_cicilan' => $jumlah_cicilan,
-            'created_at' => now(),
-        ]);
+        foreach ($pinjamans as $pinjaman) {
+            $angsuran = \DB::table('angsurans')
+                ->where('pinjaman_id', $pinjaman->id)
+                ->where('status', '1')
+                ->orderBy('id')
+                ->first();
 
-        $remaining = \DB::table('angsurans')->where('pinjaman_id', $pinjaman_id)->where('status', '1')->count();
-        if ($remaining === 0) {
-            \DB::table('nasabahs')->where('no_rekening', $pinjaman->no_rekening)->update(['status_pinjaman' => '0']);
-            \DB::table('pinjamans')->where('id', $pinjaman_id)->update(['status' => '0']);
-            Session::flash('pesan', 'Angsuran berhasil dicatat. Pinjaman sudah lunas.');
+            if (!$angsuran) {
+                continue;
+            }
+
+            $nasabah = \DB::table('nasabahs')->where('no_rekening', $pinjaman->no_rekening)->first();
+            if (!$nasabah) {
+                continue;
+            }
+
+            $jumlah_cicilan = (float) $angsuran->jumlah_cicilan;
+
+            \DB::table('angsurans')->where('id', $angsuran->id)->update(['status' => '0']);
+            \DB::table('transaksis')->insert([
+                'nasabah_id' => $nasabah->id,
+                'total' => $jumlah_cicilan,
+                'jenis_transaksi' => 'pengembalian',
+                'user_id' => $user_id,
+                'created_at' => now(),
+            ]);
+            \DB::table('pengembalians')->insert([
+                'pinjaman_id' => $pinjaman->id,
+                'jumlah_cicilan' => $jumlah_cicilan,
+                'created_at' => now(),
+            ]);
+
+            $remaining = \DB::table('angsurans')->where('pinjaman_id', $pinjaman->id)->where('status', '1')->count();
+            if ($remaining === 0) {
+                \DB::table('nasabahs')->where('no_rekening', $pinjaman->no_rekening)->update(['status_pinjaman' => '0']);
+                \DB::table('pinjamans')->where('id', $pinjaman->id)->update(['status' => '0']);
+                $lunas++;
+            }
+            $processed++;
+        }
+
+        if ($processed === 0) {
+            Session::flash('pesan', 'Tidak ada angsuran tertunggak. Semua peminjam sudah tidak ada tagihan angsuran.');
         } else {
-            Session::flash('pesan', 'Angsuran Rp ' . number_format($jumlah_cicilan, 0, ',', '.') . ' berhasil dicatat. Sisa ' . $remaining . ' angsuran.');
+            Session::flash('pesan', 'Proses angsuran selesai: ' . $processed . ' peminjam diproses.' . ($lunas > 0 ? ' ' . $lunas . ' pinjaman lunas.' : ''));
         }
 
         return redirect('pinjaman');
