@@ -41,7 +41,10 @@ class PinjamanController extends Controller
     public function index()
     {
         $data['pinjaman'] = Pinjaman::where('status','1')->paginate(20);
-        $data['kas'] = \DB::table('sisa_kas')->first();
+        // Dana Tersedia dari transaksi harian (wajib, sukarela, pengembalian, denda) - (pinjaman, debet). Setelah proses cicilan, pengembalian masuk ke sini.
+        $masuk = (float) \DB::table('transaksis')->whereIn('jenis_transaksi', ['wajib', 'sukarela', 'pengembalian', 'denda'])->sum('total');
+        $keluar = (float) \DB::table('transaksis')->whereIn('jenis_transaksi', ['pinjaman', 'debet'])->sum('total');
+        $data['kas'] = (object) ['total' => $masuk - $keluar];
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
         $ids = $data['pinjaman']->pluck('id');
         $data['cicilan'] = $this->getCurrentCicilanPerPinjaman($ids);
@@ -176,7 +179,9 @@ class PinjamanController extends Controller
     {
         $search = $request['keyword'];
         $data['pinjaman'] = Pinjaman::where('nama_lengkap','LIKE',"%{$search}%")->where('status','1')->paginate(5);
-        $data['kas'] = \DB::table('sisa_kas')->first();
+        $masuk = (float) \DB::table('transaksis')->whereIn('jenis_transaksi', ['wajib', 'sukarela', 'pengembalian', 'denda'])->sum('total');
+        $keluar = (float) \DB::table('transaksis')->whereIn('jenis_transaksi', ['pinjaman', 'debet'])->sum('total');
+        $data['kas'] = (object) ['total' => $masuk - $keluar];
         $data['tot_pinjam'] = \DB::table('tot_pinjam')->first();
         $ids = $data['pinjaman']->pluck('id');
         $data['cicilan'] = $ids->isNotEmpty() ? $this->getCurrentCicilanPerPinjaman($ids) : collect();

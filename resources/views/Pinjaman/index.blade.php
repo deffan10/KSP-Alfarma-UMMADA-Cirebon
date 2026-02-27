@@ -2,9 +2,15 @@
 @section('content')
 <div class="main-content">
         <section class="section">
+    @if (Session::has('pesan'))
+    <div class="alert alert-info alert-dismissible fade show mb-3" role="alert">
+        {{ Session::get('pesan') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
           <div class="section-header">
             <h1>Pinjaman</h1>
-          </div> 
+          </div>
     <div class="row justify-content-between">
         <div class="col-4">
             <a href="{{ url('pinjaman/recheck-active') }}" class="btn btn-warning">
@@ -26,7 +32,7 @@
     <tr><th colspan="2" class="text-center"><b>PERINCIAN DANA</b></th></tr>
     @isset($kas,$tot_pinjam)
     <tr><td>DANA BERGULIR</td><td>{{ 'Rp.'. number_format($tot_pinjam->total) }}</td></tr>
-    <tr><td>DANA TERSEDIA</td><td>{{ 'Rp.'. number_format($kas->total) }}</td></tr>
+    <tr><td>Dana Tersedia (dari transaksi harian)</td><td>{{ 'Rp.'. number_format($kas->total) }}</td></tr>
     <tr><td>Total Cicilan/Bulan (kita terima)</td><td>{{ 'Rp.'. number_format($total_cicilan_bulan ?? 0) }}</td></tr>
     @endisset
 </table>
@@ -63,16 +69,10 @@
         {!! Form::button('<i class="fas fa-undo"></i> Tagihkan Ulang',['type'=>'submit','class'=>'btn btn-outline-secondary btn-sm',"onclick"=>"return confirm('Batalkan 1 angsuran terakhir untuk peminjam ini? Angsuran akan ditambah lagi.')"]) !!}
         {!! Form::close() !!}
         @endif
+    </td></tr>
     @endforeach
     {!! $pinjaman->render() !!}
-    @if (Session::has('pesan'))
-    <div class='alert alert-warning alert-dismissible fade show' role='alert'>
-    {{ Session::get('pesan') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    @endif
     @endisset
-    </td></tr>
 </table>
 </section> 
 </div> 
